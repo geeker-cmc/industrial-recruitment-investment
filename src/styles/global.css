@@ -208,19 +208,32 @@ select {
 .home-page {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
-  min-height: calc(100vh - 64px);
+  height: calc(100vh - 64px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .home-sidebar {
-  min-height: calc(100vh - 64px);
-  padding: 20px 18px 28px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 20px 18px 0;
+  overflow: hidden;
   background: #ffffff;
   border-right: 1px solid #e8edf5;
 }
 
 .home-search {
-  margin-bottom: 26px;
+  flex: 0 0 auto;
+  margin-bottom: 18px;
+}
+
+.home-sidebar__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 2px 28px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .sidebar-section + .sidebar-section {
@@ -231,14 +244,32 @@ select {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0;
   color: #243149;
   font-size: 16px;
   font-weight: 700;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.sidebar-section.is-collapsed .sidebar-section__title {
+  margin-bottom: 0;
 }
 
 .sidebar-section__title .anticon {
   color: #63728a;
+}
+
+.sidebar-section__toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  color: #7a879c;
+  font-size: 12px;
 }
 
 .sidebar-section__items {
@@ -317,9 +348,12 @@ select {
 }
 
 .home-main {
+  height: 100%;
+  min-height: 0;
   min-width: 0;
   padding: 22px 26px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .home-panel {
@@ -1028,6 +1062,12 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .home-page {
+    height: auto;
+    min-height: calc(100vh - 64px);
+    overflow: visible;
+  }
+
   .login-page {
     gap: 28px;
     padding: 32px 18px;
@@ -1043,8 +1083,21 @@ select {
 
   .home-sidebar {
     min-height: auto;
+    max-height: none;
+    padding-bottom: 16px;
+    overflow: visible;
     border-right: 0;
     border-bottom: 1px solid #e8edf5;
+  }
+
+  .home-sidebar__scroll {
+    flex: 0 0 auto;
+    max-height: 360px;
+  }
+
+  .home-main {
+    height: auto;
+    overflow: visible;
   }
 
   .home-panel {

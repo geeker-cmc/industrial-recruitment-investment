@@ -9,6 +9,7 @@ import {
   ClusterOutlined,
   CodeOutlined,
   DesktopOutlined,
+  DownOutlined,
   ExperimentOutlined,
   FileTextOutlined,
   FireOutlined,
@@ -20,6 +21,7 @@ import {
   NodeIndexOutlined,
   PartitionOutlined,
   RadarChartOutlined,
+  RightOutlined,
   RocketOutlined,
   SearchOutlined,
   SettingOutlined,
@@ -38,6 +40,7 @@ import { featuredTopics, regionalPlans } from './data';
 import type {
   FeaturedTopic,
   HomeSelection,
+  HomeMenuType,
   IconTone,
   IndustryChain,
   RegionalPlan,
@@ -112,6 +115,12 @@ export default function HomePage() {
     type: 'featured',
     id: featuredTopics[0].id,
   });
+  const [expandedSections, setExpandedSections] = useState<
+    Record<HomeMenuType, boolean>
+  >({
+    featured: true,
+    regional: true,
+  });
 
   const selectedFeatured = featuredTopics.find(
     (item) => item.id === selection.id,
@@ -121,6 +130,13 @@ export default function HomePage() {
   const handleChainClick = (chain: IndustryChain) => {
     setCurrentIndustryChainId(chain.id);
     navigate(`/industries/${chain.id}`);
+  };
+
+  const toggleSection = (type: HomeMenuType) => {
+    setExpandedSections((sections) => ({
+      ...sections,
+      [type]: !sections[type],
+    }));
   };
 
   return (
@@ -135,30 +151,40 @@ export default function HomePage() {
           size="large"
           value={keyword}
         />
-        <SidebarSection title="精选产业专题">
-          {featuredTopics.map((topic) => (
-            <SidebarButton
-              active={selection.type === 'featured' && selection.id === topic.id}
-              icon={topic.icon}
-              key={topic.id}
-              label={topic.title}
-              onClick={() => setSelection({ type: 'featured', id: topic.id })}
-              tone={topic.tone}
-            />
-          ))}
-        </SidebarSection>
-        <SidebarSection title="区域重点产业">
-          {regionalPlans.map((plan) => (
-            <SidebarButton
-              active={selection.type === 'regional' && selection.id === plan.id}
-              icon={plan.icon}
-              key={plan.id}
-              label={plan.title}
-              onClick={() => setSelection({ type: 'regional', id: plan.id })}
-              tone={plan.tone}
-            />
-          ))}
-        </SidebarSection>
+        <div className="home-sidebar__scroll">
+          <SidebarSection
+            expanded={expandedSections.featured}
+            onToggle={() => toggleSection('featured')}
+            title="精选产业专题"
+          >
+            {featuredTopics.map((topic) => (
+              <SidebarButton
+                active={selection.type === 'featured' && selection.id === topic.id}
+                icon={topic.icon}
+                key={topic.id}
+                label={topic.title}
+                onClick={() => setSelection({ type: 'featured', id: topic.id })}
+                tone={topic.tone}
+              />
+            ))}
+          </SidebarSection>
+          <SidebarSection
+            expanded={expandedSections.regional}
+            onToggle={() => toggleSection('regional')}
+            title="区域重点产业"
+          >
+            {regionalPlans.map((plan) => (
+              <SidebarButton
+                active={selection.type === 'regional' && selection.id === plan.id}
+                icon={plan.icon}
+                key={plan.id}
+                label={plan.title}
+                onClick={() => setSelection({ type: 'regional', id: plan.id })}
+                tone={plan.tone}
+              />
+            ))}
+          </SidebarSection>
+        </div>
       </aside>
       <section className="home-main">
         {selection.type === 'featured' && selectedFeatured ? (
@@ -182,18 +208,30 @@ export default function HomePage() {
 
 function SidebarSection({
   children,
+  expanded,
+  onToggle,
   title,
 }: {
   children: ReactNode;
+  expanded: boolean;
+  onToggle: () => void;
   title: string;
 }) {
   return (
-    <section className="sidebar-section">
-      <div className="sidebar-section__title">
+    <section className={`sidebar-section ${expanded ? 'is-expanded' : 'is-collapsed'}`}>
+      <button
+        aria-expanded={expanded}
+        className="sidebar-section__title"
+        onClick={onToggle}
+        type="button"
+      >
         <ClusterOutlined />
         <span>{title}</span>
-      </div>
-      <div className="sidebar-section__items">{children}</div>
+        <span className="sidebar-section__toggle">
+          {expanded ? <DownOutlined /> : <RightOutlined />}
+        </span>
+      </button>
+      {expanded ? <div className="sidebar-section__items">{children}</div> : null}
     </section>
   );
 }
