@@ -32,6 +32,7 @@ import {
   Tag,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -107,6 +108,28 @@ type EnterpriseDistributionRow = {
   market: string;
 };
 
+type SimpleMapFeature = {
+  type: 'Feature';
+  properties: {
+    name: string;
+    cp: number[];
+  };
+  geometry: {
+    type: 'Polygon';
+    coordinates: number[][][];
+  };
+};
+
+type SimpleMapGeoJson = {
+  type: 'FeatureCollection';
+  features: SimpleMapFeature[];
+};
+
+type EChartsFormatterParam = {
+  name?: string;
+  value?: number | string;
+};
+
 const distributionMetrics = [
   { key: 'all', label: '全部企业', value: '133,791', icon: <DatabaseOutlined /> },
   { key: 'listed', label: '上市企业', value: '110', icon: <BuildOutlined /> },
@@ -123,6 +146,167 @@ const districtStats = [
   { name: '昌平区', value: 12711 },
   { name: '丰台区', value: 11936 },
 ];
+
+const beijingDistrictMapData = [
+  { name: '海淀区', value: 23171 },
+  { name: '朝阳区', value: 14176 },
+  { name: '通州区', value: 13247 },
+  { name: '昌平区', value: 12711 },
+  { name: '丰台区', value: 11936 },
+  { name: '密云区', value: 10840 },
+  { name: '门头沟区', value: 9420 },
+  { name: '顺义区', value: 8840 },
+];
+
+const BEIJING_ENTERPRISE_MAP_NAME = 'beijing-enterprise-distribution';
+
+const beijingEnterpriseGeoJson: SimpleMapGeoJson = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: { name: '门头沟区', cp: [115.93, 39.96] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [115.78, 39.9],
+            [115.92, 40.12],
+            [116.05, 40.18],
+            [116.0, 39.98],
+            [116.08, 39.82],
+            [115.9, 39.75],
+            [115.78, 39.9],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { name: '海淀区', cp: [116.23, 40.08] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [116.05, 40.18],
+            [116.15, 40.3],
+            [116.32, 40.36],
+            [116.45, 40.28],
+            [116.36, 40.12],
+            [116.18, 40.15],
+            [116.05, 40.18],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { name: '昌平区', cp: [116.3, 39.98] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [116.18, 40.15],
+            [116.36, 40.12],
+            [116.46, 40.0],
+            [116.42, 39.86],
+            [116.28, 39.84],
+            [116.12, 39.95],
+            [116.18, 40.15],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { name: '丰台区', cp: [116.28, 39.76] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [116.08, 39.82],
+            [116.28, 39.84],
+            [116.42, 39.86],
+            [116.48, 39.72],
+            [116.31, 39.64],
+            [116.12, 39.74],
+            [116.08, 39.82],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { name: '朝阳区', cp: [116.58, 39.78] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [116.42, 39.86],
+            [116.62, 39.9],
+            [116.75, 39.78],
+            [116.63, 39.66],
+            [116.48, 39.72],
+            [116.42, 39.86],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { name: '密云区', cp: [116.68, 40.18] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [116.45, 40.28],
+            [116.64, 40.34],
+            [116.86, 40.28],
+            [116.85, 40.08],
+            [116.64, 40.02],
+            [116.46, 40.14],
+            [116.45, 40.28],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { name: '顺义区', cp: [116.52, 40.02] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [116.46, 40.14],
+            [116.64, 40.02],
+            [116.62, 39.9],
+            [116.42, 39.86],
+            [116.36, 40.12],
+            [116.46, 40.14],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { name: '通州区', cp: [116.77, 39.8] },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [116.62, 39.9],
+            [116.8, 39.92],
+            [116.92, 39.8],
+            [116.86, 39.64],
+            [116.63, 39.66],
+            [116.75, 39.78],
+            [116.62, 39.9],
+          ],
+        ],
+      },
+    },
+  ],
+};
 
 const productDistribution = [
   { name: '电子设备及元器件经销', value: 42 },
@@ -852,29 +1036,90 @@ function EnterpriseDistribution({
 }
 
 function BeijingDistributionMap() {
+  if (!echarts.getMap(BEIJING_ENTERPRISE_MAP_NAME)) {
+    echarts.registerMap(
+      BEIJING_ENTERPRISE_MAP_NAME,
+      beijingEnterpriseGeoJson as Parameters<typeof echarts.registerMap>[1],
+    );
+  }
+
+  const mapOption = useMemo(
+    () => ({
+      tooltip: {
+        trigger: 'item',
+        borderWidth: 0,
+        padding: [8, 12],
+        formatter: (params: EChartsFormatterParam) => {
+          const value = Number(params.value ?? 0);
+          return `${params.name}<br/>企业数量：${value.toLocaleString()}`;
+        },
+      },
+      visualMap: {
+        min: 8000,
+        max: 23171,
+        left: 8,
+        bottom: 22,
+        orient: 'vertical',
+        itemWidth: 22,
+        itemHeight: 86,
+        text: ['高', '23,171'],
+        textGap: 10,
+        calculable: false,
+        inRange: {
+          color: ['#bcd4fb', '#6fa3f5', '#1f5aa6'],
+        },
+        textStyle: {
+          color: '#334155',
+          fontSize: 14,
+          fontWeight: 700,
+        },
+      },
+      series: [
+        {
+          name: '企业数量',
+          type: 'map',
+          map: BEIJING_ENTERPRISE_MAP_NAME,
+          roam: false,
+          selectedMode: false,
+          layoutCenter: ['52%', '50%'],
+          layoutSize: '82%',
+          aspectScale: 0.92,
+          data: beijingDistrictMapData,
+          label: {
+            show: true,
+            color: '#ffffff',
+            fontSize: 15,
+            fontWeight: 800,
+            textBorderColor: 'rgba(30, 41, 59, 0.45)',
+            textBorderWidth: 3,
+          },
+          itemStyle: {
+            borderColor: '#ffffff',
+            borderWidth: 3,
+            shadowBlur: 12,
+            shadowColor: 'rgba(24, 83, 160, 0.18)',
+          },
+          emphasis: {
+            label: {
+              show: true,
+              color: '#ffffff',
+              fontWeight: 800,
+            },
+            itemStyle: {
+              areaColor: '#1f6fe5',
+              borderColor: '#ffffff',
+              borderWidth: 3,
+            },
+          },
+        },
+      ],
+    }),
+    [],
+  );
+
   return (
     <div className="beijing-map">
-      <svg aria-label="北京市企业分布示意图" viewBox="0 0 640 520">
-        <path className="district district--light" d="M122 312 62 368 86 450 192 470 234 404 206 332Z" />
-        <path className="district district--mid" d="M206 332 234 404 330 390 342 314 276 268Z" />
-        <path className="district district--dark" d="M276 268 342 314 418 298 436 214 354 172 286 202Z" />
-        <path className="district district--mid" d="M354 172 436 214 538 174 542 90 432 56 356 88Z" />
-        <path className="district district--light" d="M202 188 286 202 356 88 286 40 192 86 150 146Z" />
-        <path className="district district--mid" d="M418 298 330 390 376 476 520 454 582 350 520 290Z" />
-        <path className="district district--deep" d="M234 404 192 470 278 506 376 476 330 390Z" />
-        <path className="district district--light" d="M62 368 122 312 150 146 72 180 28 266Z" />
-        <text x="214" y="238">海淀区</text>
-        <text x="314" y="286">昌平区</text>
-        <text x="432" y="178">密云区</text>
-        <text x="174" y="398">门头沟区</text>
-        <text x="394" y="380">朝阳区</text>
-        <text x="292" y="448">丰台区</text>
-      </svg>
-      <div className="beijing-map__legend">
-        <span>高</span>
-        <i />
-        <strong>23,171</strong>
-      </div>
+      <ReactECharts className="beijing-map__chart" option={mapOption} />
     </div>
   );
 }

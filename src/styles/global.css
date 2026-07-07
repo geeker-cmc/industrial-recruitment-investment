@@ -901,68 +901,13 @@ select {
   min-height: 450px;
 }
 
-.beijing-map svg {
-  display: block;
-  width: min(100%, 720px);
-  height: 450px;
-  margin: 0 auto;
+.beijing-map__chart {
+  width: 100%;
+  min-height: 450px;
 }
 
-.district {
-  stroke: #ffffff;
-  stroke-width: 4;
-  filter: drop-shadow(0 4px 5px rgba(30, 76, 150, 0.16));
-}
-
-.district--light {
-  fill: #bcd4fb;
-}
-
-.district--mid {
-  fill: #6da1f5;
-}
-
-.district--dark {
-  fill: #2f75dd;
-}
-
-.district--deep {
-  fill: #174f9e;
-}
-
-.beijing-map text {
-  fill: #ffffff;
-  font-size: 16px;
-  font-weight: 800;
-  paint-order: stroke;
-  stroke: rgba(25, 39, 64, 0.5);
-  stroke-width: 3px;
-}
-
-.beijing-map__legend {
-  position: absolute;
-  left: 10px;
-  bottom: 8px;
-  display: grid;
-  grid-template-columns: 24px 1fr;
-  column-gap: 10px;
-  align-items: end;
-  color: #334155;
-  font-weight: 700;
-}
-
-.beijing-map__legend i {
-  display: block;
-  width: 22px;
-  height: 78px;
-  grid-row: span 2;
-  background: linear-gradient(180deg, #174f9e, #72a6f8);
-  border-radius: 4px;
-}
-
-.beijing-map__legend strong {
-  align-self: start;
-  font-weight: 700;
+.beijing-map__chart > div {
+  min-height: 450px;
 }
 
 .district-ranking {
