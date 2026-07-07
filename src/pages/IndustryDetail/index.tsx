@@ -5,26 +5,38 @@ import {
   ArrowLeftOutlined,
   BarChartOutlined,
   BranchesOutlined,
+  BuildOutlined,
+  DatabaseOutlined,
   DownloadOutlined,
+  EditOutlined,
   FileTextOutlined,
   FundProjectionScreenOutlined,
+  GoldOutlined,
   InfoCircleOutlined,
+  SearchOutlined,
   StarOutlined,
+  TeamOutlined,
+  TrophyOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import {
   Button,
   Checkbox,
   Descriptions,
   Drawer,
+  Input,
   Select,
   Space,
+  Table,
   Tabs,
   Tag,
 } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import ReactECharts from 'echarts-for-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  companies,
   type CompanyProfile,
   type IndustryGraphNode,
   getCompanyList,
@@ -83,6 +95,46 @@ const MIND_MAP_LAYOUT: LayoutOptions = {
   getVGap: () => 18,
 };
 
+type EnterpriseDistributionRow = {
+  id: string;
+  index: number;
+  company: CompanyProfile;
+  district: string;
+  chainNode: string;
+  nationalIndustry: string;
+  score: number;
+  grade: string;
+  market: string;
+};
+
+const distributionMetrics = [
+  { key: 'all', label: '全部企业', value: '133,791', icon: <DatabaseOutlined /> },
+  { key: 'listed', label: '上市企业', value: '110', icon: <BuildOutlined /> },
+  { key: 'neeq', label: '新三板企业', value: '138', icon: <BarChartOutlined /> },
+  { key: 'bond', label: '发债企业', value: '64', icon: <GoldOutlined /> },
+  { key: 'funding', label: '私募融资企业', value: '391', icon: <FundProjectionScreenOutlined /> },
+  { key: 'qualified', label: '资质认定企业', value: '9,230', icon: <TrophyOutlined /> },
+];
+
+const districtStats = [
+  { name: '海淀区', value: 23171 },
+  { name: '朝阳区', value: 14176 },
+  { name: '通州区', value: 13247 },
+  { name: '昌平区', value: 12711 },
+  { name: '丰台区', value: 11936 },
+];
+
+const productDistribution = [
+  { name: '电子设备及元器件经销', value: 42 },
+  { name: '电脑与外围设备贸易', value: 18 },
+  { name: '通信设备贸易', value: 16 },
+  { name: '电子设备', value: 10 },
+  { name: '仪器仪表', value: 8 },
+  { name: '消费电子产品', value: 6 },
+  { name: '通信系统', value: 5 },
+  { name: '安防设备', value: 4 },
+];
+
 export default function IndustryDetailPage() {
   const navigate = useNavigate();
   const { industryChainId } = useParams<IndustryParams>();
@@ -139,6 +191,11 @@ export default function IndustryDetailPage() {
             key: 'strength',
             label: '产业链强弱分析',
             children: <IndustryStrengthAnalysis industry={industry} />,
+          },
+          {
+            key: 'enterprise-distribution',
+            label: '企业分布',
+            children: <EnterpriseDistribution industry={industry} />,
           },
         ]}
         onChange={setActiveTab}
@@ -498,6 +555,325 @@ function CompanyDrawerContent({
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EnterpriseDistribution({
+  industry,
+}: {
+  industry: ReturnType<typeof getIndustryById>;
+}) {
+  const [keyword, setKeyword] = useState('');
+  const [drawerCompany, setDrawerCompany] = useState<CompanyProfile | null>(null);
+  const navigate = useNavigate();
+  const setCurrentCompanyId = useCompanyStore((state) => state.setCurrentCompanyId);
+
+  const rows = useMemo<EnterpriseDistributionRow[]>(
+    () =>
+      companies.slice(3, 13).map((company, index) => ({
+        id: company.id,
+        index: index + 1,
+        company,
+        district: [
+          '北京市-北京市-海淀区',
+          '北京市-北京市-大兴区',
+          '北京市-北京市-朝阳区',
+          '北京市-北京市-顺义区',
+          '北京市-北京市-昌平区',
+        ][index % 5],
+        chainNode: [
+          '电子设备及元器件经销，电脑与外围设备贸易，通信设备贸易，销售渠道、应用场景',
+          '生产设备，原材料，设计、加工，IC生产设备',
+          '有线通信系统，通信系统，电子设备、仪器，通信设备',
+          '应用电子仪器及设备，电子设备、仪器',
+        ][index % 4],
+        nationalIndustry: company.nationalIndustry,
+        score: 539 - index * 4,
+        grade: index === 1 ? 'S' : 'A',
+        market: index % 3 === 0 ? '--' : index % 3 === 1 ? '科创板:688' : '新三板:873',
+      })),
+    [],
+  );
+
+  const filteredRows = useMemo(() => {
+    const value = keyword.trim();
+    if (!value) return rows;
+    return rows.filter((row) => row.company.name.includes(value));
+  }, [keyword, rows]);
+
+  const productOption = useMemo(
+    () => ({
+      tooltip: {},
+      series: [
+        {
+          type: 'treemap',
+          roam: false,
+          nodeClick: false,
+          breadcrumb: { show: false },
+          label: {
+            show: true,
+            color: '#ffffff',
+            fontWeight: 700,
+          },
+          upperLabel: { show: false },
+          itemStyle: {
+            borderColor: '#9cc0ff',
+            borderWidth: 1,
+            gapWidth: 1,
+          },
+          data: productDistribution.map((item, index) => ({
+            ...item,
+            itemStyle: {
+              color: ['#2554a3', '#4f8df4', '#6fa3f9', '#9cbbef', '#b4caf4'][
+                Math.min(index, 4)
+              ],
+            },
+          })),
+        },
+      ],
+    }),
+    [],
+  );
+
+  const openCompanyDrawer = (company: CompanyProfile) => {
+    setCurrentCompanyId(company.id);
+    setDrawerCompany(company);
+  };
+
+  const columns: ColumnsType<EnterpriseDistributionRow> = [
+    {
+      title: '序号',
+      dataIndex: 'index',
+      width: 76,
+      align: 'center',
+    },
+    {
+      title: '公司名称',
+      dataIndex: ['company', 'name'],
+      width: 250,
+      render: (_, row) => (
+        <button
+          className="company-name-button"
+          onClick={() => openCompanyDrawer(row.company)}
+          type="button"
+        >
+          {row.company.name}
+        </button>
+      ),
+    },
+    {
+      title: '公司所在地',
+      dataIndex: 'district',
+      width: 220,
+    },
+    {
+      title: '产业链节点',
+      dataIndex: 'chainNode',
+      width: 240,
+    },
+    {
+      title: '国标行业',
+      dataIndex: 'nationalIndustry',
+      width: 340,
+    },
+    {
+      title: '综合评分信息',
+      dataIndex: 'score',
+      width: 170,
+      render: (score, row) => (
+        <span className="company-score-inline">
+          {score}
+          <Tag color="blue">{row.grade}</Tag>
+        </span>
+      ),
+    },
+    {
+      title: '交易市场',
+      dataIndex: 'market',
+      width: 140,
+    },
+    {
+      title: '营销管理',
+      key: 'actions',
+      width: 150,
+      fixed: 'right',
+      render: (_, row) => (
+        <Space size={12}>
+          <Button onClick={() => openCompanyDrawer(row.company)} type="link">
+            加潜客
+          </Button>
+          <Button type="link">关注</Button>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <section className="detail-panel enterprise-distribution-panel">
+      <div className="distribution-toolbar">
+        <Select
+          className="distribution-select"
+          options={[{ label: '北京市', value: 'beijing' }]}
+          value="beijing"
+        />
+        <Select
+          className="distribution-select distribution-select--wide"
+          options={industry.graphNodes
+            .filter((node) => node.id !== `${industry.id}-root`)
+            .slice(0, 8)
+            .map((node) => ({ label: node.label, value: node.id }))}
+          placeholder="请选择产业链节点"
+        />
+      </div>
+      <div className="distribution-metrics">
+        {distributionMetrics.map((metric, index) => (
+          <article
+            className={`distribution-metric ${index === 0 ? 'is-active' : ''}`}
+            key={metric.key}
+          >
+            <span>{metric.icon}</span>
+            <div>
+              <small>{metric.label}</small>
+              <strong>{metric.value}</strong>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="distribution-overview">
+        <article className="distribution-card distribution-map-card">
+          <h2>
+            <TeamOutlined />
+            产业地图
+          </h2>
+          <BeijingDistributionMap />
+        </article>
+        <article className="distribution-card distribution-side-card">
+          <h2>产品分布</h2>
+          <ReactECharts option={productOption} style={{ height: 270 }} />
+          <h2>区域排行</h2>
+          <div className="district-ranking">
+            {districtStats.map((item, index) => (
+              <div className="district-ranking__item" key={item.name}>
+                <span>{index + 1}</span>
+                <strong>{item.name}</strong>
+                <div>
+                  <i style={{ width: `${Math.max(26, (item.value / 23171) * 100)}%` }} />
+                </div>
+                <em>{item.value.toLocaleString()}</em>
+              </div>
+            ))}
+          </div>
+        </article>
+      </div>
+      <article className="distribution-card enterprise-list-card">
+        <div className="distribution-section-title">
+          <h2>
+            <TeamOutlined />
+            企业名单
+          </h2>
+          <Space>
+            <Button icon={<UploadOutlined />} type="link">
+              批量导出
+            </Button>
+            <Button icon={<EditOutlined />} type="link">
+              自定义字段
+            </Button>
+          </Space>
+        </div>
+        <div className="enterprise-filters">
+          <label>
+            企业名称：
+            <Input
+              allowClear
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="请输入企业名称关键字"
+              prefix={<SearchOutlined />}
+              value={keyword}
+            />
+          </label>
+          <label>
+            地区：
+            <Select options={[{ label: '北京市', value: 'beijing' }]} value="beijing" />
+          </label>
+          <label>
+            资质标签：
+            <Select placeholder="请选择资质" />
+          </label>
+          <label>
+            国标行业：
+            <Input placeholder="国标分类" />
+          </label>
+          <div className="enterprise-filter-row">
+            <span>成立日期：</span>
+            {['1年内', '1-3年', '3-5年', '5-10年', '10年以上'].map((item) => (
+              <Button key={item}>{item}</Button>
+            ))}
+          </div>
+          <div className="enterprise-filter-row">
+            <span>企业综合评分：</span>
+            {['A', 'B', 'C', 'D', 'E'].map((item) => (
+              <Button key={item}>{item}</Button>
+            ))}
+          </div>
+        </div>
+        <Table<EnterpriseDistributionRow>
+          columns={columns}
+          dataSource={filteredRows}
+          pagination={{
+            pageSize: 5,
+            showSizeChanger: false,
+            showTotal: () => '共 133791 条',
+          }}
+          rowKey="id"
+          scroll={{ x: 1600 }}
+        />
+      </article>
+      <Drawer
+        className="company-profile-drawer"
+        onClose={() => setDrawerCompany(null)}
+        open={Boolean(drawerCompany)}
+        title="客户营销画像"
+        width={760}
+      >
+        {drawerCompany ? (
+          <CompanyDrawerContent
+            company={drawerCompany}
+            onDetail={() => {
+              setCurrentCompanyId(drawerCompany.id);
+              navigate(`/companies/${drawerCompany.id}`);
+            }}
+          />
+        ) : null}
+      </Drawer>
+    </section>
+  );
+}
+
+function BeijingDistributionMap() {
+  return (
+    <div className="beijing-map">
+      <svg aria-label="北京市企业分布示意图" viewBox="0 0 640 520">
+        <path className="district district--light" d="M122 312 62 368 86 450 192 470 234 404 206 332Z" />
+        <path className="district district--mid" d="M206 332 234 404 330 390 342 314 276 268Z" />
+        <path className="district district--dark" d="M276 268 342 314 418 298 436 214 354 172 286 202Z" />
+        <path className="district district--mid" d="M354 172 436 214 538 174 542 90 432 56 356 88Z" />
+        <path className="district district--light" d="M202 188 286 202 356 88 286 40 192 86 150 146Z" />
+        <path className="district district--mid" d="M418 298 330 390 376 476 520 454 582 350 520 290Z" />
+        <path className="district district--deep" d="M234 404 192 470 278 506 376 476 330 390Z" />
+        <path className="district district--light" d="M62 368 122 312 150 146 72 180 28 266Z" />
+        <text x="214" y="238">海淀区</text>
+        <text x="314" y="286">昌平区</text>
+        <text x="432" y="178">密云区</text>
+        <text x="174" y="398">门头沟区</text>
+        <text x="394" y="380">朝阳区</text>
+        <text x="292" y="448">丰台区</text>
+      </svg>
+      <div className="beijing-map__legend">
+        <span>高</span>
+        <i />
+        <strong>23,171</strong>
       </div>
     </div>
   );

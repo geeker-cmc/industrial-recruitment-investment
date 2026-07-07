@@ -212,6 +212,113 @@ export const companies: CompanyProfile[] = [
   },
 ];
 
+const distributionCompanySeeds = [
+  {
+    id: 'beijing-lizheng',
+    name: '北京历正科技有限责任公司',
+    logoText: '历',
+    district: '北京市海淀区永泰庄北路1号东升国际科学园',
+  },
+  {
+    id: 'beijing-yitang',
+    name: '北京屹唐半导体科技股份有限公司',
+    logoText: '屹',
+    district: '北京市大兴区亦庄经济技术开发区',
+  },
+  {
+    id: 'beijing-rongwei',
+    name: '北京融为科技有限公司',
+    logoText: '融',
+    district: '北京市大兴区中关村科技园区',
+  },
+  {
+    id: 'beijing-bangandi',
+    name: '北京帮安迪信息科技股份有限公司',
+    logoText: '帮',
+    district: '北京市海淀区西三旗信息产业基地',
+  },
+  {
+    id: 'beikuang-testing',
+    name: '北矿检测技术股份有限公司',
+    logoText: '矿',
+    district: '北京市大兴区生物医药基地',
+  },
+  {
+    id: 'dongfang-bowo',
+    name: '东方博沃（北京）科技有限公司',
+    logoText: '博',
+    district: '北京市昌平区科技园区创新路',
+  },
+  {
+    id: 'beijing-xinghan',
+    name: '北京兴汉网际股份有限公司',
+    logoText: '汉',
+    district: '北京市海淀区中关村软件园',
+  },
+  {
+    id: 'hengyu-xintong',
+    name: '恒宇信通航空装备（北京）股份有限公司',
+    logoText: '恒',
+    district: '北京市顺义区空港工业区',
+  },
+  {
+    id: 'kechuang-electronics',
+    name: '科创电子设备（北京）有限公司',
+    logoText: '科',
+    district: '北京市朝阳区电子城科技园',
+  },
+  {
+    id: 'zhongxin-energy',
+    name: '中芯博新能源科技股份有限公司',
+    logoText: '芯',
+    district: '北京市通州区张家湾设计小镇',
+  },
+];
+
+distributionCompanySeeds.forEach((seed, index) => {
+  if (companies.some((company) => company.id === seed.id)) return;
+  const template = companies[index % companies.length];
+  companies.push({
+    ...template,
+    id: seed.id,
+    name: seed.name,
+    shortName: seed.name.replace(/(股份有限公司|有限责任公司|有限公司)/g, ''),
+    logoText: seed.logoText,
+    stock: index % 3 === 0 ? `${seed.name.slice(0, 4)} 新三板` : undefined,
+    tags: index % 2 === 0
+      ? ['专精特新', '高新技术企业认定', '瞪羚企业']
+      : ['科技型中小企业评价', '企业技术中心', '资质认定'],
+    riskSummary: '最近半年重大风险线索 0 条',
+    legalPerson: ['雷嘉宾', '赵明', '王睿', '刘晨'][index % 4],
+    establishedDate: ['2018-03-09', '2015-06-18', '2012-11-02', '2020-05-27'][index % 4],
+    registeredCapital: ['1,000.00 万人民币', '3,500.00 万人民币', '8,200.00 万人民币'][index % 3],
+    contact: ['13264520553', '010-66581234', '010-88997721'][index % 3],
+    address: seed.district,
+    creditCode: `91110108MA0${index + 2300}88Y`,
+    companyType: index % 3 === 0 ? '股份有限公司' : '有限责任公司',
+    website: 'https://www.example.com',
+    email: `contact${index + 1}@example.com`,
+    postcode: ['100085', '100176', '102600'][index % 3],
+    industries: ['电子信息产业链', '数字经济产业链', '智能终端产业链', '信息技术服务产业链'],
+    nationalIndustry:
+      '科学研究和技术服务业 > 科技推广和应用服务业 > 其他科技推广服务业',
+    businessScope:
+      '电子设备、仪器仪表、通信系统、软件平台的技术开发、技术咨询、技术服务及产品销售。',
+    mainBusiness: ['电子设备', '仪器仪表', '通信设备', '软件服务'],
+    scores: template.scores.map((score, scoreIndex) => ({
+      ...score,
+      grade: ['A', 'S', 'B', 'A', 'A', 'A'][scoreIndex] || score.grade,
+      ranking: ['行业 前1% / 地区 前1%', '行业 前2% / 地区 前3%'][scoreIndex % 2],
+    })),
+    summaryScores: {
+      comprehensive: 'A 卓越 / 539分',
+      innovation: 'S 卓越 / 508分',
+      business: '近半年 9 项商机',
+      reach: '触达价值 A TOP3%',
+    },
+  });
+});
+
 const electronicNodes: IndustryGraphNode[] = [
   { id: 'electronic-information-root', label: '电子信息产业链', x: 80, y: 290, companyIds: [] },
   { id: 'materials-design', label: '原材料、设计、加工', x: 260, y: 120, companyIds: [] },

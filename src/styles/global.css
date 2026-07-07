@@ -784,6 +784,339 @@ select {
   color: #2d3a52;
 }
 
+.enterprise-distribution-panel {
+  position: relative;
+  background: #f8fafd;
+}
+
+.distribution-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.distribution-select {
+  width: 180px;
+}
+
+.distribution-select--wide {
+  width: 260px;
+}
+
+.distribution-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.distribution-metric {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 86px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid #edf1f7;
+  border-radius: 4px;
+}
+
+.distribution-metric.is-active {
+  border-color: #1677ff;
+  box-shadow: inset 0 0 0 1px #1677ff;
+}
+
+.distribution-metric > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #8fa0bd;
+  font-size: 22px;
+  background: #eef3fb;
+  border-radius: 50%;
+}
+
+.distribution-metric small,
+.distribution-metric strong {
+  display: block;
+}
+
+.distribution-metric small {
+  color: #42516a;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.distribution-metric strong {
+  margin-top: 4px;
+  color: #222a38;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.distribution-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.distribution-card {
+  min-width: 0;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #edf1f7;
+  border-radius: 4px;
+}
+
+.distribution-card h2,
+.distribution-section-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  color: #1f2b43;
+  font-size: 20px;
+}
+
+.distribution-card h2 .anticon,
+.distribution-section-title h2 .anticon {
+  color: #1677ff;
+}
+
+.distribution-map-card {
+  min-height: 520px;
+}
+
+.distribution-side-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.beijing-map {
+  position: relative;
+  min-height: 450px;
+}
+
+.beijing-map svg {
+  display: block;
+  width: min(100%, 720px);
+  height: 450px;
+  margin: 0 auto;
+}
+
+.district {
+  stroke: #ffffff;
+  stroke-width: 4;
+  filter: drop-shadow(0 4px 5px rgba(30, 76, 150, 0.16));
+}
+
+.district--light {
+  fill: #bcd4fb;
+}
+
+.district--mid {
+  fill: #6da1f5;
+}
+
+.district--dark {
+  fill: #2f75dd;
+}
+
+.district--deep {
+  fill: #174f9e;
+}
+
+.beijing-map text {
+  fill: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgba(25, 39, 64, 0.5);
+  stroke-width: 3px;
+}
+
+.beijing-map__legend {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  column-gap: 10px;
+  align-items: end;
+  color: #334155;
+  font-weight: 700;
+}
+
+.beijing-map__legend i {
+  display: block;
+  width: 22px;
+  height: 78px;
+  grid-row: span 2;
+  background: linear-gradient(180deg, #174f9e, #72a6f8);
+  border-radius: 4px;
+}
+
+.beijing-map__legend strong {
+  align-self: start;
+  font-weight: 700;
+}
+
+.district-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.district-ranking__item {
+  display: grid;
+  grid-template-columns: 34px 64px minmax(100px, 1fr) 74px;
+  gap: 10px;
+  align-items: center;
+  color: #2b364d;
+  font-weight: 700;
+}
+
+.district-ranking__item span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: #ffffff;
+  background: #b7c2d0;
+  border-radius: 5px;
+}
+
+.district-ranking__item:nth-child(1) span {
+  background: #f5a400;
+}
+
+.district-ranking__item:nth-child(2) span {
+  background: #aab7c7;
+}
+
+.district-ranking__item:nth-child(3) span {
+  background: #c59d78;
+}
+
+.district-ranking__item div {
+  height: 8px;
+  overflow: hidden;
+  background: #edf1f6;
+  border-radius: 999px;
+}
+
+.district-ranking__item i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #69a8ff, #1677ff);
+  border-radius: inherit;
+}
+
+.district-ranking__item em {
+  color: #1677ff;
+  font-style: normal;
+  text-align: right;
+}
+
+.enterprise-list-card {
+  padding: 20px 22px 0;
+}
+
+.distribution-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.enterprise-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-bottom: 18px;
+  color: #53647f;
+  font-weight: 700;
+}
+
+.enterprise-filters label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enterprise-filters .ant-input-affix-wrapper,
+.enterprise-filters .ant-select,
+.enterprise-filters .ant-input {
+  width: 220px;
+}
+
+.enterprise-filter-row {
+  display: flex;
+  align-items: center;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.enterprise-filter-row span {
+  min-width: 104px;
+}
+
+.enterprise-filter-row .ant-btn {
+  min-width: 70px;
+  font-weight: 700;
+}
+
+.enterprise-list-card .ant-table-wrapper {
+  overflow: hidden;
+  border: 1px solid #edf1f7;
+  border-radius: 4px;
+}
+
+.enterprise-list-card .ant-table-thead > tr > th {
+  color: #7d8aa0;
+  font-weight: 800;
+  background: #f3f6fb;
+}
+
+.enterprise-list-card .ant-table-tbody > tr > td {
+  color: #2f3c54;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.enterprise-list-card .ant-table-tbody > tr:nth-child(even) > td {
+  background: #f3fbff;
+}
+
+.company-name-button {
+  padding: 0;
+  color: #1677ff;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.company-name-button:hover {
+  color: #0958d9;
+}
+
+.company-score-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
 .drawer-profile__top {
   display: flex;
   align-items: flex-start;
@@ -1033,11 +1366,13 @@ select {
   }
 
   .industry-map-layout,
-  .overview-split {
+  .overview-split,
+  .distribution-overview {
     grid-template-columns: 1fr;
   }
 
   .overview-grid,
+  .distribution-metrics,
   .company-summary-scores,
   .company-score-grid--detail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1137,9 +1472,47 @@ select {
   }
 
   .overview-grid,
+  .distribution-metrics,
   .company-score-grid,
   .company-summary-scores,
   .company-score-grid--detail {
     grid-template-columns: 1fr;
+  }
+
+  .distribution-toolbar,
+  .distribution-section-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .distribution-select,
+  .distribution-select--wide {
+    width: 100%;
+  }
+
+  .enterprise-filters label,
+  .enterprise-filter-row {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .enterprise-filters .ant-input-affix-wrapper,
+  .enterprise-filters .ant-select,
+  .enterprise-filters .ant-input {
+    width: 100%;
+  }
+
+  .beijing-map svg {
+    height: 340px;
+  }
+
+  .district-ranking__item {
+    grid-template-columns: 34px 58px minmax(80px, 1fr);
+  }
+
+  .district-ranking__item em {
+    grid-column: 3;
+    text-align: left;
   }
 }
