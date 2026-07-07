@@ -447,11 +447,51 @@ export function getCompanyList(ids: string[]) {
   return ids.map((id) => getCompanyById(id)).filter(Boolean);
 }
 
+function getRelatedCompanyIds(node: IndustryMindMapNode, depth: number) {
+  if (node.companyIds.length > 0) return node.companyIds;
+  if (depth === 0 || companies.length === 0) return [];
+
+  const companyIds = companies.map((company) => company.id);
+  const offset =
+    node.id.split('').reduce((total, char) => total + char.charCodeAt(0), 0) %
+    companyIds.length;
+
+  return companyIds.map((_, index) => companyIds[(offset + index) % companyIds.length]);
+}
+
 export function getIndustryOptions() {
   return industries.map((industry) => ({
     label: industry.name,
     value: industry.id,
   }));
+}
+
+function toMindMapTreeNode(
+  node: IndustryMindMapNode,
+  depth: number,
+  rootLabel: string,
+): TreeData {
+  const label = depth === 0 ? rootLabel : node.label;
+  const companyIds = getRelatedCompanyIds(node, depth);
+  const children = (node.children as IndustryMindMapNode[] | undefined)?.map((child) =>
+    toMindMapTreeNode(child, depth + 1, rootLabel),
+  );
+
+  return {
+    id: node.id,
+    label,
+    companyIds,
+    data: {
+      id: node.id,
+      label,
+      companyIds,
+    },
+    ...(children?.length ? { children } : {}),
+  };
+}
+
+export function toIndustryMindMapData(industry: IndustryDetail): TreeData {
+  return toMindMapTreeNode(industry.graphTree, 0, industry.name);
 }
 
 const statusStyle: Record<ChainNodeStatus, { fill: string; stroke: string; color: string }> = {
@@ -465,27 +505,30 @@ export function toIndustryGraphData(industry: IndustryDetail): GraphData {
   return treeToGraphData(industry.graphTree, {
     getNodeData: (datum, depth) => {
       const node = datum as IndustryMindMapNode;
-      const label = depth === 0 ? industry.name : node.label;
+      const level = depth ?? 0;
+      const label = level === 0 ? industry.name : node.label;
+      const companyIds = getRelatedCompanyIds(node, level);
+      const isRoot = level === 0;
+      const isMainBranch = level === 1;
+
       return {
         id: node.id,
         children: node.children?.map((child) => child.id),
-        depth,
+        depth: level,
         data: {
           id: node.id,
           label,
-          companyIds: node.companyIds,
+          companyIds,
         },
         style: {
-          size: depth === 0 ? [160, 42] : [148, 34],
-          radius: 8,
-          fill:
-            depth === 0 ? '#65b7ff' : node.companyIds.length ? '#eef5ff' : '#ffffff',
-          stroke:
-            depth === 0 ? '#65b7ff' : node.companyIds.length ? '#7ea1da' : '#d7dee9',
-          lineWidth: 1,
+          size: isRoot ? [174, 44] : isMainBranch ? [174, 38] : [158, 34],
+          radius: isRoot || isMainBranch ? 10 : 7,
+          fill: isRoot ? '#55b8ff' : isMainBranch ? '#8793b4' : '#f7fbff',
+          stroke: isRoot ? '#55b8ff' : isMainBranch ? '#8793b4' : '#92b8f7',
+          lineWidth: isRoot || isMainBranch ? 0 : 1.5,
           labelText: label,
           labelPlacement: 'center',
-          labelFill: depth === 0 ? '#ffffff' : '#2b3a52',
+          labelFill: isRoot || isMainBranch ? '#ffffff' : '#24324a',
           labelFontSize: 12,
           labelFontWeight: 700,
         },
@@ -496,7 +539,8 @@ export function toIndustryGraphData(industry: IndustryDetail): GraphData {
       target: target.id,
       style: {
         stroke: '#cdd7e8',
-        lineWidth: 1.5,
+        lineWidth: 1.4,
+        lineDash: [5, 5],
         endArrow: true,
       },
     }),

@@ -1,5 +1,6 @@
 import { Graph, NodeEvent } from '@antv/g6';
-import type { GraphData, LayoutOptions, NodeData } from '@antv/g6';
+import type { GraphData, LayoutOptions, NodeData, TreeData } from '@antv/g6';
+import { MindMap } from '@ant-design/graphs';
 import {
   ArrowLeftOutlined,
   BarChartOutlined,
@@ -21,7 +22,7 @@ import {
   Tag,
 } from 'antd';
 import ReactECharts from 'echarts-for-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   type CompanyProfile,
@@ -29,7 +30,7 @@ import {
   getCompanyList,
   getIndustryById,
   getIndustryOptions,
-  toIndustryGraphData,
+  toIndustryMindMapData,
   toStrengthGraphData,
 } from '../../mock/industry';
 import { useCompanyStore } from '../../stores/useCompanyStore';
@@ -43,6 +44,43 @@ type NodeTooltipState = {
   x: number;
   y: number;
   node: IndustryGraphNode;
+};
+
+type NodeHoverPayload = {
+  localX: number;
+  localY: number;
+  containerRect: DOMRect;
+};
+
+type PointerLikeEvent = {
+  clientX?: number;
+  clientY?: number;
+  canvasX?: number;
+  canvasY?: number;
+  viewportX?: number;
+  viewportY?: number;
+  client?: { x?: number; y?: number };
+  canvas?: { x?: number; y?: number };
+  viewport?: { x?: number; y?: number };
+  nativeEvent?: { clientX?: number; clientY?: number };
+  target?: { id?: string };
+  originalTarget?: { id?: string };
+  composedPath?: () => Array<{ id?: string }>;
+};
+
+const MIND_MAP_ANIMATION = { duration: 260 };
+const MIND_MAP_CONTAINER_STYLE = { height: 760 };
+const MIND_MAP_EDGE = {
+  style: {
+    lineWidth: 2.4,
+    strokeOpacity: 0.5,
+  },
+};
+const MIND_MAP_LAYOUT: LayoutOptions = {
+  type: 'mindmap',
+  getHGap: () => 82,
+  getSubTreeSep: () => 38,
+  getVGap: () => 18,
 };
 
 export default function IndustryDetailPage() {
@@ -176,23 +214,13 @@ function InfoCard({ title, values }: { title: string; values: string[] }) {
 function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById> }) {
   const [tooltip, setTooltip] = useState<NodeTooltipState | null>(null);
   const [drawerCompany, setDrawerCompany] = useState<CompanyProfile | null>(null);
+  const graphShellRef = useRef<HTMLDivElement | null>(null);
   const hideTimerRef = useRef<number | undefined>();
+  const registeredMindMapRef = useRef<Graph | null>(null);
   const setCurrentCompanyId = useCompanyStore((state) => state.setCurrentCompanyId);
   const navigate = useNavigate();
 
-  const graphData = useMemo(() => toIndustryGraphData(industry), [industry]);
-  const mindMapLayout = useMemo<LayoutOptions>(
-    () => ({
-      type: 'mindmap',
-      direction: 'LR',
-      getWidth: () => 148,
-      getHeight: () => 34,
-      getHGap: () => 64,
-      getVGap: () => 16,
-      getSubTreeSep: () => 20,
-    }),
-    [],
-  );
+  const mindMapData = useMemo(() => toIndustryMindMapData(industry), [industry]);
 
   const closeTooltipSoon = useCallback(() => {
     window.clearTimeout(hideTimerRef.current);
@@ -205,16 +233,54 @@ function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById
   };
 
   const handleNodeMove = useCallback(
-    (event: { clientX: number; clientY: number; containerRect: DOMRect }, node: IndustryGraphNode) => {
+    (event: NodeHoverPayload, node: IndustryGraphNode) => {
       if (node.companyIds.length === 0) return;
       const rect = event.containerRect;
+      const position = getTooltipPosition(event.localX, event.localY, rect, node.companyIds.length);
+      window.clearTimeout(hideTimerRef.current);
       setTooltip({
-        x: Math.min(event.clientX - rect.left + 16, rect.width - 300),
-        y: Math.max(event.clientY - rect.top - 26, 16),
+        x: position.x,
+        y: position.y,
         node,
       });
     },
     [],
+  );
+
+  const handleMindMapReady = useCallback(
+    (graph: Graph) => {
+      if (graph.destroyed) return;
+      if (registeredMindMapRef.current === graph) return;
+      registeredMindMapRef.current = graph;
+
+      const handlePointer = (event: unknown) => {
+        const pointerEvent = event as PointerLikeEvent;
+        const node = getNodeDataFromPointerEvent(graph, pointerEvent);
+        const nodeData = node ? toIndustryGraphNode(node) : undefined;
+        const containerRect = graphShellRef.current?.getBoundingClientRect();
+        if (!nodeData || !containerRect) return;
+
+        const pointerPosition = getLocalPointerPosition(pointerEvent, containerRect);
+        handleNodeMove(
+          {
+            localX: pointerPosition.x,
+            localY: pointerPosition.y,
+            containerRect,
+          },
+          nodeData,
+        );
+      };
+
+      graph.on(NodeEvent.POINTER_ENTER, handlePointer);
+      graph.on(NodeEvent.POINTER_MOVE, handlePointer);
+      graph.on(NodeEvent.POINTER_LEAVE, closeTooltipSoon);
+      void graph.zoomTo(1).then(async () => {
+        if (graph.destroyed) return;
+        await graph.fitCenter();
+        if (!graph.destroyed) await graph.translateBy([150, 0]);
+      });
+    },
+    [closeTooltipSoon, handleNodeMove],
   );
 
   return (
@@ -227,15 +293,8 @@ function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById
           </h2>
           <span>当前节点：全部节点</span>
         </div>
-        <div className="graph-shell">
-          <G6Graph
-            data={graphData}
-            edgeType="cubic-horizontal"
-            height={760}
-            layout={mindMapLayout}
-            onNodeLeave={closeTooltipSoon}
-            onNodeMove={handleNodeMove}
-          />
+        <div className="graph-shell" ref={graphShellRef}>
+          <IndustryMindMapCanvas data={mindMapData} onReady={handleMindMapReady} />
           {tooltip ? (
             <div
               className="company-tooltip"
@@ -244,7 +303,7 @@ function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById
               style={{ left: tooltip.x, top: tooltip.y }}
             >
               {getCompanyList(tooltip.node.companyIds)
-                .slice(0, 2)
+                .slice(0, 10)
                 .map((company, index) => (
                   <button
                     key={company.id}
@@ -289,6 +348,34 @@ function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById
     </section>
   );
 }
+
+const IndustryMindMapCanvas = memo(function IndustryMindMapCanvas({
+  data,
+  onReady,
+}: {
+  data: TreeData;
+  onReady: (graph: Graph) => void;
+}) {
+  return (
+    <MindMap
+      animation={MIND_MAP_ANIMATION}
+      autoFit="center"
+      className="industry-mind-map"
+      containerStyle={MIND_MAP_CONTAINER_STYLE}
+      data={data}
+      defaultExpandLevel={6}
+      direction="right"
+      edge={MIND_MAP_EDGE}
+      labelField="label"
+      layout={MIND_MAP_LAYOUT}
+      nodeMaxWidth={220}
+      nodeMinWidth={124}
+      onReady={onReady}
+      padding={72}
+      type="boxed"
+    />
+  );
+});
 
 function TrendCharts({ industry }: { industry: ReturnType<typeof getIndustryById> }) {
   const years = ['2022', '2023', '2024', '2025', '2026'];
@@ -453,18 +540,11 @@ function G6Graph({
   edgeType = 'polyline',
   height,
   layout,
-  onNodeLeave,
-  onNodeMove,
 }: {
   data: GraphData;
   edgeType?: 'polyline' | 'cubic-horizontal';
   height: number;
   layout?: LayoutOptions;
-  onNodeLeave?: () => void;
-  onNodeMove?: (
-    event: { clientX: number; clientY: number; containerRect: DOMRect },
-    node: IndustryGraphNode,
-  ) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -489,38 +569,143 @@ function G6Graph({
       behaviors: ['drag-canvas', 'zoom-canvas'],
     });
 
-    graph.on(NodeEvent.POINTER_MOVE, (event: unknown) => {
-      if (!onNodeMove) return;
-      const pointerEvent = event as {
-        clientX: number;
-        clientY: number;
-        target?: { id?: string };
-      };
-      const nodeId = pointerEvent.target?.id;
-      if (!nodeId) return;
-      const node = graph.getNodeData(nodeId) as NodeData;
-      const nodeData = node.data as IndustryGraphNode | undefined;
-      if (!nodeData) return;
-      onNodeMove(
-        {
-          clientX: pointerEvent.clientX,
-          clientY: pointerEvent.clientY,
-          containerRect: container.getBoundingClientRect(),
-        },
-        nodeData,
-      );
-    });
-
-    if (onNodeLeave) {
-      graph.on(NodeEvent.POINTER_LEAVE, onNodeLeave);
-    }
-
-    graph.render();
+    void graph.render();
 
     return () => {
       graph.destroy();
     };
-  }, [data, edgeType, height, layout, onNodeLeave, onNodeMove]);
+  }, [data, edgeType, height, layout]);
 
   return <div className="g6-graph" ref={containerRef} style={{ height }} />;
+}
+
+function getNodeDataFromPointerEvent(graph: Graph, event: PointerLikeEvent) {
+  const targetIds = [
+    event.target?.id,
+    event.originalTarget?.id,
+    ...(event.composedPath?.().map((target) => target.id) ?? []),
+  ].filter((nodeId): nodeId is string => typeof nodeId === 'string' && nodeId.length > 0);
+
+  for (const nodeId of targetIds) {
+    try {
+      return graph.getNodeData(nodeId) as NodeData;
+    } catch {
+      // G6 can report the inner shape id first; keep walking the event path.
+    }
+  }
+
+  return undefined;
+}
+
+function toIndustryGraphNode(node: NodeData): IndustryGraphNode | undefined {
+  const topLevelNode = node as NodeData & Partial<IndustryGraphNode>;
+  const payload = (node.data ?? {}) as Partial<IndustryGraphNode>;
+  const id = typeof topLevelNode.id === 'string' ? topLevelNode.id : payload.id;
+  const label =
+    typeof topLevelNode.label === 'string'
+      ? topLevelNode.label
+      : typeof payload.label === 'string'
+        ? payload.label
+        : id;
+  const companyIds = Array.isArray(topLevelNode.companyIds)
+    ? topLevelNode.companyIds
+    : Array.isArray(payload.companyIds)
+      ? payload.companyIds
+      : [];
+
+  if (!id || !label) return undefined;
+
+  return {
+    id,
+    label,
+    companyIds,
+  };
+}
+
+function getLocalPointerPosition(event: PointerLikeEvent, containerRect: DOMRect) {
+  const browserPoint =
+    getPointFromValues(event.nativeEvent?.clientX, event.nativeEvent?.clientY) ??
+    getPointFromValues(event.clientX, event.clientY);
+
+  if (browserPoint) {
+    return {
+      x: browserPoint.x - containerRect.left,
+      y: browserPoint.y - containerRect.top,
+    };
+  }
+
+  const candidates = [
+    getPoint(event.client),
+    getPoint(event.viewport),
+    getPointFromValues(event.viewportX, event.viewportY),
+    getPoint(event.canvas),
+    getPointFromValues(event.canvasX, event.canvasY),
+  ];
+
+  for (const point of candidates) {
+    if (!point) continue;
+    if (point.x <= containerRect.width + 48 && point.y <= containerRect.height + 48) {
+      return point;
+    }
+
+    return {
+      x: point.x - containerRect.left,
+      y: point.y - containerRect.top,
+    };
+  }
+
+  if (
+    typeof event.nativeEvent?.clientX === 'number' &&
+    typeof event.nativeEvent.clientY === 'number'
+  ) {
+    return {
+      x: event.nativeEvent.clientX - containerRect.left,
+      y: event.nativeEvent.clientY - containerRect.top,
+    };
+  }
+
+  return {
+    x: containerRect.width / 2,
+    y: containerRect.height / 2,
+  };
+}
+
+function getTooltipPosition(
+  pointerX: number,
+  pointerY: number,
+  containerRect: DOMRect,
+  companyCount: number,
+) {
+  const gap = 12;
+  const padding = 12;
+  const tooltipWidth = 360;
+  const visibleCompanyCount = Math.min(companyCount, 10);
+  const tooltipHeight = Math.min(420, 58 + visibleCompanyCount * 48);
+  const maxX = Math.max(padding, containerRect.width - tooltipWidth - padding);
+  const maxY = Math.max(padding, containerRect.height - tooltipHeight - padding);
+  let x = pointerX + gap;
+  let y = pointerY + gap;
+
+  if (x + tooltipWidth > containerRect.width - padding) {
+    x = pointerX - tooltipWidth - gap;
+  }
+
+  if (y + tooltipHeight > containerRect.height - padding) {
+    y = pointerY - tooltipHeight - gap;
+  }
+
+  return {
+    x: Math.min(Math.max(x, padding), maxX),
+    y: Math.min(Math.max(y, padding), maxY),
+  };
+}
+
+function getPoint(point?: { x?: number; y?: number }) {
+  return getPointFromValues(point?.x, point?.y);
+}
+
+function getPointFromValues(x?: number, y?: number) {
+  if (typeof x !== 'number' || typeof y !== 'number') return undefined;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined;
+  return { x, y };
 }
