@@ -46,7 +46,7 @@ export default function AppHeader() {
           to="/home"
         >
           <HomeOutlined />
-          <span>主页</span>
+          <span>产业洞察</span>
         </NavLink>
         <NavLink
           className={({ isActive }) =>
