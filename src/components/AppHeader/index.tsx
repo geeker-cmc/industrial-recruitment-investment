@@ -1,11 +1,11 @@
 import {
   AppstoreOutlined,
-  BankOutlined,
-  BarChartOutlined,
+  CompassOutlined,
   FileProtectOutlined,
   HomeOutlined,
   LogoutOutlined,
   ProjectOutlined,
+  RobotOutlined,
   TeamOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
@@ -20,18 +20,25 @@ export default function AppHeader() {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-  const isHomeModule =
+  const isIndustryModule =
     location.pathname.startsWith('/home') ||
     location.pathname.startsWith('/industries') ||
     location.pathname.startsWith('/companies');
 
   const managementNavItems = [
     {
+      to: '/dashboard',
+      label: '首页',
+      icon: <HomeOutlined />,
+      active: location.pathname.startsWith('/dashboard') || location.pathname === '/',
+    },
+    {
       to: '/project-management',
       label: '项目管理',
       icon: <ProjectOutlined />,
       active:
         location.pathname.startsWith('/project-management') ||
+        location.pathname.startsWith('/projects') ||
         location.pathname.startsWith('/investment-management') ||
         location.pathname.startsWith('/investment-pool'),
     },
@@ -40,12 +47,6 @@ export default function AppHeader() {
       label: '客户管理',
       icon: <TeamOutlined />,
       active: location.pathname.startsWith('/customer-management'),
-    },
-    {
-      to: '/fund-management',
-      label: '基金管理',
-      icon: <BankOutlined />,
-      active: location.pathname.startsWith('/fund-management'),
     },
     {
       to: '/risk-management',
@@ -57,18 +58,22 @@ export default function AppHeader() {
         location.pathname.startsWith('/post-investment'),
     },
     {
-      to: '/data-statistics',
-      label: '数据统计',
-      icon: <BarChartOutlined />,
-      active:
-        location.pathname.startsWith('/data-statistics') ||
-        location.pathname.startsWith('/investment-review'),
-    },
-    {
       to: '/document-management',
       label: '文档管理',
       icon: <FileProtectOutlined />,
       active: location.pathname.startsWith('/document-management'),
+    },
+    {
+      to: '/agents',
+      label: '智能体',
+      icon: <RobotOutlined />,
+      active: location.pathname.startsWith('/agents'),
+    },
+    {
+      to: '/home',
+      label: '产业洞察',
+      icon: <CompassOutlined />,
+      active: isIndustryModule,
     },
   ];
 
@@ -86,18 +91,11 @@ export default function AppHeader() {
 
   return (
     <Header className="app-header">
-      <div className="app-header__brand" onClick={() => navigate('/home')}>
+      <div className="app-header__brand" onClick={() => navigate('/dashboard')}>
         <AppstoreOutlined />
         <span>产业招投平台</span>
       </div>
       <nav className="app-header__nav" aria-label="一级导航">
-        <NavLink
-          className={`app-header__nav-link ${isHomeModule ? 'active' : ''}`}
-          to="/home"
-        >
-          <HomeOutlined />
-          <span>产业洞察</span>
-        </NavLink>
         {managementNavItems.map((item) => (
           <NavLink
             className={`app-header__nav-link ${item.active ? 'active' : ''}`}

@@ -20,14 +20,14 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/home', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
   const handleSubmit = (values: LoginFormValues) => {
     login(values.account);
     message.success('登录成功');
-    navigate('/home', { replace: true });
+    navigate('/dashboard', { replace: true });
   };
 
   return (
@@ -39,7 +39,7 @@ export default function LoginPage() {
         </div>
         <h1>产业洞察与股权投资业务管理工作台</h1>
         <p>
-          统一承载产业链检索、重点产业导航、项目全生命周期、基金、客户、风控和文档管理流程。
+          统一承载首页看板、项目全生命周期、投资客户、风险、文档、智能体工具和产业洞察流程。
         </p>
         <div className="login-page__metrics" aria-label="平台概览">
           <div>

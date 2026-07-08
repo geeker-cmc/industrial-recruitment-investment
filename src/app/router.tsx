@@ -5,10 +5,13 @@ import MainLayout from '../layouts/MainLayout';
 import { useAuthStore } from '../stores/useAuthStore';
 
 const LoginPage = lazy(() => import('../pages/Login'));
+const DashboardPage = lazy(() => import('../pages/Dashboard'));
 const HomePage = lazy(() => import('../pages/Home'));
 const IndustryDetailPage = lazy(() => import('../pages/IndustryDetail'));
 const CompanyDetailPage = lazy(() => import('../pages/CompanyDetail'));
 const BusinessManagementPage = lazy(() => import('../pages/BusinessManagement'));
+const ProjectDetailPage = lazy(() => import('../pages/ProjectDetail'));
+const AgentToolsPage = lazy(() => import('../pages/AgentTools'));
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -49,7 +52,11 @@ const router = createHashRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/home" replace />,
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: 'dashboard',
+        element: withPageLoader(<DashboardPage />),
       },
       {
         path: 'home',
@@ -81,11 +88,15 @@ const router = createHashRouter([
       },
       {
         path: 'investment-review',
-        element: withPageLoader(<BusinessManagementPage moduleKey="data" />),
+        element: <Navigate to="/dashboard" replace />,
       },
       {
         path: 'project-management',
         element: withPageLoader(<BusinessManagementPage moduleKey="project" />),
+      },
+      {
+        path: 'projects/:projectId',
+        element: withPageLoader(<ProjectDetailPage />),
       },
       {
         path: 'customer-management',
@@ -93,7 +104,7 @@ const router = createHashRouter([
       },
       {
         path: 'fund-management',
-        element: withPageLoader(<BusinessManagementPage moduleKey="fund" />),
+        element: <Navigate to="/project-management" replace />,
       },
       {
         path: 'risk-management',
@@ -101,17 +112,21 @@ const router = createHashRouter([
       },
       {
         path: 'data-statistics',
-        element: withPageLoader(<BusinessManagementPage moduleKey="data" />),
+        element: <Navigate to="/dashboard" replace />,
       },
       {
         path: 'document-management',
         element: withPageLoader(<BusinessManagementPage moduleKey="document" />),
       },
+      {
+        path: 'agents',
+        element: withPageLoader(<AgentToolsPage />),
+      },
     ],
   },
   {
     path: '*',
-    element: <Navigate to="/home" replace />,
+    element: <Navigate to="/dashboard" replace />,
   },
 ]);
 
