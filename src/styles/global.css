@@ -1981,7 +1981,9 @@ select {
 }
 
 .agent-nav-panel button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   min-height: 42px;
   padding: 0 12px;
@@ -1992,6 +1994,17 @@ select {
   border: 0;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.agent-nav-panel button .anticon {
+  color: inherit;
+  font-size: 17px;
+}
+
+.agent-nav-panel button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .agent-nav-panel button.is-active,
@@ -2097,6 +2110,34 @@ select {
 .agent-task-panel {
   padding: 18px;
   margin-bottom: 16px;
+}
+
+.agent-task-panel--table {
+  min-width: 0;
+}
+
+.agent-task-panel--table .management-table-card__header {
+  margin-bottom: 14px;
+}
+
+.agent-task-panel--table .management-table-filters {
+  grid-template-columns: 240px 150px;
+  min-width: 400px;
+}
+
+.agent-input-summary {
+  display: block;
+  overflow: hidden;
+  color: #40506a;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-result-content .ant-descriptions-item-label {
+  width: 116px;
+  color: #53647f;
+  font-weight: 800;
 }
 
 .agent-flow__steps {

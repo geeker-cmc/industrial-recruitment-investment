@@ -53,7 +53,7 @@ export type AgentOutput = {
   name: string;
   tool: '尽调报告' | '合同审核';
   projectName: string;
-  status: '处理中' | '已完成' | '待确认';
+  status: '待解析' | '处理中' | '已完成' | '待确认' | '已回写' | '解析失败';
   result: string;
   riskCount: number;
   updatedAt: string;
