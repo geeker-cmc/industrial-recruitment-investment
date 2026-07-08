@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
+    "build:file": "tsc -b && vite build --config vite.file.config.ts && node scripts/inline-file-build.mjs dist-file",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
