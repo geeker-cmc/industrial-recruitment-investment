@@ -1424,6 +1424,62 @@ select {
   background: #1677ff;
 }
 
+.management-hero--compact {
+  margin-bottom: 12px;
+}
+
+.management-table-card {
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #e7edf6;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(24, 39, 64, 0.05);
+}
+
+.management-table-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.management-table-card__header h2 {
+  margin: 0;
+  color: #1f2b43;
+  font-size: 20px;
+}
+
+.management-table-card__header p {
+  margin: 8px 0 0;
+  color: #64728a;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.management-table-filters {
+  display: grid;
+  grid-template-columns: 240px 140px 160px;
+  gap: 10px;
+  min-width: 560px;
+}
+
+.management-table-filters .ant-input-search,
+.management-table-filters .ant-select {
+  width: 100%;
+}
+
+.management-row-actions {
+  white-space: nowrap;
+}
+
+.management-row-actions a,
+.management-row-actions .ant-btn-link {
+  padding-right: 0;
+  padding-left: 0;
+  font-weight: 800;
+}
+
 .management-flow--compact {
   grid-template-columns: repeat(5, minmax(150px, 1fr));
 }
@@ -3011,9 +3067,15 @@ select {
 
   .dashboard-hero,
   .agent-hero,
-  .project-detail-hero {
+  .project-detail-hero,
+  .management-table-card__header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .management-table-filters {
+    grid-template-columns: 1fr;
+    min-width: 0;
   }
 
   .management-list button,
