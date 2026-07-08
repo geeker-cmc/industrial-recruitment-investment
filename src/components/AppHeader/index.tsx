@@ -1,8 +1,10 @@
 import {
   AppstoreOutlined,
+  BarChartOutlined,
+  FundProjectionScreenOutlined,
   HomeOutlined,
   LogoutOutlined,
-  ProjectOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { Avatar, Button, Dropdown, Layout, MenuProps, Space } from 'antd';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -50,10 +52,28 @@ export default function AppHeader() {
           className={({ isActive }) =>
             `app-header__nav-link ${isActive ? 'active' : ''}`
           }
-          to="/investment-pool"
+          to="/investment-management"
         >
-          <ProjectOutlined />
-          <span>投管池</span>
+          <FundProjectionScreenOutlined />
+          <span>投管</span>
+        </NavLink>
+        <NavLink
+          className={({ isActive }) =>
+            `app-header__nav-link ${isActive ? 'active' : ''}`
+          }
+          to="/risk-monitor"
+        >
+          <SafetyCertificateOutlined />
+          <span>风险监控</span>
+        </NavLink>
+        <NavLink
+          className={({ isActive }) =>
+            `app-header__nav-link ${isActive ? 'active' : ''}`
+          }
+          to="/investment-review"
+        >
+          <BarChartOutlined />
+          <span>投资复盘</span>
         </NavLink>
       </nav>
       <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
