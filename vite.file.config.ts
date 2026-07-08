@@ -7,6 +7,7 @@ export default defineConfig({
   build: {
     cssCodeSplit: false,
     emptyOutDir: true,
+    modulePreload: false,
     outDir: 'dist-file',
     rollupOptions: {
       output: {

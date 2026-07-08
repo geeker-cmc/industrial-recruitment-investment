@@ -56,7 +56,7 @@ html = html.replace(/<link\s+[^>]*rel="modulepreload"[^>]*>\s*/g, '');
 if (inlineScripts.length > 0) {
   const scriptBlock = inlineScripts.map((script) => `    ${script}`).join('\n');
   if (html.includes('</body>')) {
-    html = html.replace(/\s*<\/body>/, `\n${scriptBlock}\n  </body>`);
+    html = html.replace(/\s*<\/body>/, () => `\n${scriptBlock}\n  </body>`);
   } else {
     html += `\n${scriptBlock}\n`;
   }
