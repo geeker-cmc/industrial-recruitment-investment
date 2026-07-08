@@ -1556,8 +1556,8 @@ select {
   margin-bottom: 16px;
 }
 
-.dashboard-hero span,
-.agent-hero span {
+.dashboard-hero > div > .management-eyebrow,
+.agent-hero > div > .management-eyebrow {
   display: inline-flex;
   margin-bottom: 8px;
   color: #1677ff;

@@ -3,7 +3,6 @@ import {
   CloudUploadOutlined,
   FileSearchOutlined,
   ProfileOutlined,
-  RobotOutlined,
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import {
@@ -18,9 +17,11 @@ import {
   Space,
   Table,
   Tag,
+  Upload,
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { UploadFile } from 'antd/es/upload/interface';
 import { useMemo, useState } from 'react';
 import {
   agentTasks,
@@ -33,7 +34,11 @@ type AgentMenuKey = 'due-diligence' | 'contract';
 type AgentTaskFormValues = {
   projectName: string;
   input: string;
+  files: UploadFile[];
 };
+
+const normalizeUploadFileList = (event?: { fileList?: UploadFile[] } | UploadFile[]) =>
+  Array.isArray(event) ? event : event?.fileList ?? [];
 
 const agentMenus = [
   {
@@ -66,14 +71,15 @@ export default function AgentToolsPage() {
   );
 
   const createTask = (values: AgentTaskFormValues) => {
+    const fileNames = values.files.map((file) => file.name).filter(Boolean).join('、');
     const task: AgentTask = {
       id: `agent-${Date.now()}`,
       projectName: values.projectName,
       tool: activeAgent.tool,
-      input: values.input,
+      input: values.input || fileNames,
       status: '待解析',
       score: 0,
-      finding: '资料已提交，等待智能体解析。',
+      finding: `${fileNames || '资料'}已提交，等待智能体解析。`,
       updatedAt: '2026-07-08',
     };
     setTasks((rows) => [task, ...rows]);
@@ -122,8 +128,8 @@ export default function AgentToolsPage() {
         </div>
         <Space>
           <Button icon={<FileSearchOutlined />}>高级筛选</Button>
-          <Button icon={<RobotOutlined />} onClick={() => setModalOpen(true)} type="primary">
-            新建解析任务
+          <Button icon={<CloudUploadOutlined />} onClick={() => setModalOpen(true)} type="primary">
+            {activeKey === 'contract' ? '上传合同文件' : '上传尽调资料'}
           </Button>
         </Space>
       </header>
@@ -180,7 +186,7 @@ export default function AgentToolsPage() {
         onCancel={() => setModalOpen(false)}
         onOk={() => form.submit()}
         open={modalOpen}
-        title={`新建${activeAgent.title}任务`}
+        title={activeKey === 'contract' ? '上传合同文件并提交解析' : '上传尽调资料并提交解析'}
       >
         <Form<AgentTaskFormValues>
           form={form}
@@ -195,9 +201,34 @@ export default function AgentToolsPage() {
             />
           </Form.Item>
           <Form.Item
-            label={activeKey === 'due-diligence' ? '提交资料' : '合同文件'}
+            getValueFromEvent={normalizeUploadFileList}
+            label={activeKey === 'due-diligence' ? '上传尽调资料' : '上传合同文件'}
+            name="files"
+            rules={[{ required: true, message: activeKey === 'due-diligence' ? '请上传尽调资料' : '请上传合同文件' }]}
+            valuePropName="fileList"
+          >
+            <Upload.Dragger
+              accept={activeKey === 'due-diligence' ? '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip' : '.pdf,.doc,.docx'}
+              beforeUpload={() => false}
+              maxCount={activeKey === 'due-diligence' ? 8 : 5}
+              multiple
+            >
+              <p className="ant-upload-drag-icon">
+                <CloudUploadOutlined />
+              </p>
+              <p className="ant-upload-text">
+                {activeKey === 'due-diligence' ? '点击或拖拽上传尽调资料' : '点击或拖拽上传合同文件'}
+              </p>
+              <p className="ant-upload-hint">
+                {activeKey === 'due-diligence'
+                  ? '支持商业计划书、财报、工商材料、访谈纪要等，提交后进入尽调智能体解析队列。'
+                  : '支持投资协议、补充协议、付款计划等合同文件，提交后进入合同合规检查、条款监控和合同比对。'}
+              </p>
+            </Upload.Dragger>
+          </Form.Item>
+          <Form.Item
+            label={activeKey === 'due-diligence' ? '资料说明' : '合同说明'}
             name="input"
-            rules={[{ required: true, message: '请输入资料说明' }]}
           >
             <Input.TextArea
               placeholder={activeKey === 'due-diligence' ? '例如：商业计划书、财报、工商、专利、访谈纪要' : '例如：投资协议、补充协议、付款计划'}
