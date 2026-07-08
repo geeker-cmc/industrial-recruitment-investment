@@ -37,9 +37,9 @@ export default function LoginPage() {
           <SafetyCertificateOutlined />
           <span>产业招投平台</span>
         </div>
-        <h1>产业链招商与投资管理工作台</h1>
+        <h1>产业洞察与股权投资业务管理工作台</h1>
         <p>
-          统一承载产业链检索、重点产业导航、投管池管理和投后监测流程。
+          统一承载产业链检索、重点产业导航、项目全生命周期、基金、客户、风控和文档管理流程。
         </p>
         <div className="login-page__metrics" aria-label="平台概览">
           <div>

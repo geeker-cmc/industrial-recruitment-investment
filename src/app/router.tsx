@@ -8,9 +8,7 @@ const LoginPage = lazy(() => import('../pages/Login'));
 const HomePage = lazy(() => import('../pages/Home'));
 const IndustryDetailPage = lazy(() => import('../pages/IndustryDetail'));
 const CompanyDetailPage = lazy(() => import('../pages/CompanyDetail'));
-const InvestmentManagementPage = lazy(() => import('../pages/InvestmentManagement'));
-const RiskMonitorPage = lazy(() => import('../pages/RiskMonitor'));
-const InvestmentReviewPage = lazy(() => import('../pages/InvestmentReview'));
+const BusinessManagementPage = lazy(() => import('../pages/BusinessManagement'));
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -67,23 +65,47 @@ const router = createHashRouter([
       },
       {
         path: 'investment-pool',
-        element: <Navigate to="/investment-management" replace />,
-      },
-      {
-        path: 'investment-management',
-        element: withPageLoader(<InvestmentManagementPage />),
-      },
-      {
-        path: 'risk-monitor',
-        element: withPageLoader(<RiskMonitorPage />),
+        element: withPageLoader(<BusinessManagementPage moduleKey="project" />),
       },
       {
         path: 'post-investment',
-        element: <Navigate to="/investment-review" replace />,
+        element: withPageLoader(<BusinessManagementPage moduleKey="risk" />),
+      },
+      {
+        path: 'investment-management',
+        element: withPageLoader(<BusinessManagementPage moduleKey="project" />),
+      },
+      {
+        path: 'risk-monitor',
+        element: withPageLoader(<BusinessManagementPage moduleKey="risk" />),
       },
       {
         path: 'investment-review',
-        element: withPageLoader(<InvestmentReviewPage />),
+        element: withPageLoader(<BusinessManagementPage moduleKey="data" />),
+      },
+      {
+        path: 'project-management',
+        element: withPageLoader(<BusinessManagementPage moduleKey="project" />),
+      },
+      {
+        path: 'customer-management',
+        element: withPageLoader(<BusinessManagementPage moduleKey="customer" />),
+      },
+      {
+        path: 'fund-management',
+        element: withPageLoader(<BusinessManagementPage moduleKey="fund" />),
+      },
+      {
+        path: 'risk-management',
+        element: withPageLoader(<BusinessManagementPage moduleKey="risk" />),
+      },
+      {
+        path: 'data-statistics',
+        element: withPageLoader(<BusinessManagementPage moduleKey="data" />),
+      },
+      {
+        path: 'document-management',
+        element: withPageLoader(<BusinessManagementPage moduleKey="document" />),
       },
     ],
   },

@@ -1,10 +1,13 @@
 import {
   AppstoreOutlined,
+  BankOutlined,
   BarChartOutlined,
-  FundProjectionScreenOutlined,
+  FileProtectOutlined,
   HomeOutlined,
   LogoutOutlined,
-  SafetyCertificateOutlined,
+  ProjectOutlined,
+  TeamOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { Avatar, Button, Dropdown, Layout, MenuProps, Space } from 'antd';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -21,6 +24,53 @@ export default function AppHeader() {
     location.pathname.startsWith('/home') ||
     location.pathname.startsWith('/industries') ||
     location.pathname.startsWith('/companies');
+
+  const managementNavItems = [
+    {
+      to: '/project-management',
+      label: '项目管理',
+      icon: <ProjectOutlined />,
+      active:
+        location.pathname.startsWith('/project-management') ||
+        location.pathname.startsWith('/investment-management') ||
+        location.pathname.startsWith('/investment-pool'),
+    },
+    {
+      to: '/customer-management',
+      label: '客户管理',
+      icon: <TeamOutlined />,
+      active: location.pathname.startsWith('/customer-management'),
+    },
+    {
+      to: '/fund-management',
+      label: '基金管理',
+      icon: <BankOutlined />,
+      active: location.pathname.startsWith('/fund-management'),
+    },
+    {
+      to: '/risk-management',
+      label: '风险管理',
+      icon: <WarningOutlined />,
+      active:
+        location.pathname.startsWith('/risk-management') ||
+        location.pathname.startsWith('/risk-monitor') ||
+        location.pathname.startsWith('/post-investment'),
+    },
+    {
+      to: '/data-statistics',
+      label: '数据统计',
+      icon: <BarChartOutlined />,
+      active:
+        location.pathname.startsWith('/data-statistics') ||
+        location.pathname.startsWith('/investment-review'),
+    },
+    {
+      to: '/document-management',
+      label: '文档管理',
+      icon: <FileProtectOutlined />,
+      active: location.pathname.startsWith('/document-management'),
+    },
+  ];
 
   const userMenuItems: MenuProps['items'] = [
     {
@@ -48,33 +98,16 @@ export default function AppHeader() {
           <HomeOutlined />
           <span>产业洞察</span>
         </NavLink>
-        <NavLink
-          className={({ isActive }) =>
-            `app-header__nav-link ${isActive ? 'active' : ''}`
-          }
-          to="/investment-management"
-        >
-          <FundProjectionScreenOutlined />
-          <span>投管</span>
-        </NavLink>
-        <NavLink
-          className={({ isActive }) =>
-            `app-header__nav-link ${isActive ? 'active' : ''}`
-          }
-          to="/risk-monitor"
-        >
-          <SafetyCertificateOutlined />
-          <span>风险监控</span>
-        </NavLink>
-        <NavLink
-          className={({ isActive }) =>
-            `app-header__nav-link ${isActive ? 'active' : ''}`
-          }
-          to="/investment-review"
-        >
-          <BarChartOutlined />
-          <span>投资复盘</span>
-        </NavLink>
+        {managementNavItems.map((item) => (
+          <NavLink
+            className={`app-header__nav-link ${item.active ? 'active' : ''}`}
+            key={item.to}
+            to={item.to}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
       </nav>
       <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
         <Button className="app-header__user" type="text">
