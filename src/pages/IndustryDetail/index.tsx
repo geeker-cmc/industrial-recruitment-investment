@@ -46,6 +46,7 @@ import {
   toIndustryMindMapData,
   toStrengthGraphData,
 } from '../../mock/industry';
+import beijingGeoJson from '../../assets/maps/beijing.json';
 import { useCompanyStore } from '../../stores/useCompanyStore';
 import { useIndustryStore } from '../../stores/useIndustryStore';
 
@@ -108,23 +109,6 @@ type EnterpriseDistributionRow = {
   market: string;
 };
 
-type SimpleMapFeature = {
-  type: 'Feature';
-  properties: {
-    name: string;
-    cp: number[];
-  };
-  geometry: {
-    type: 'Polygon';
-    coordinates: number[][][];
-  };
-};
-
-type SimpleMapGeoJson = {
-  type: 'FeatureCollection';
-  features: SimpleMapFeature[];
-};
-
 type EChartsFormatterParam = {
   name?: string;
   value?: number | string;
@@ -148,165 +132,26 @@ const districtStats = [
 ];
 
 const beijingDistrictMapData = [
-  { name: '海淀区', value: 23171 },
+  { name: '东城区', value: 9340 },
+  { name: '西城区', value: 9660 },
   { name: '朝阳区', value: 14176 },
-  { name: '通州区', value: 13247 },
-  { name: '昌平区', value: 12711 },
   { name: '丰台区', value: 11936 },
-  { name: '密云区', value: 10840 },
+  { name: '石景山区', value: 8840 },
+  { name: '海淀区', value: 23171 },
   { name: '门头沟区', value: 9420 },
-  { name: '顺义区', value: 8840 },
+  { name: '房山区', value: 8410 },
+  { name: '通州区', value: 13247 },
+  { name: '顺义区', value: 10860 },
+  { name: '昌平区', value: 12711 },
+  { name: '大兴区', value: 11280 },
+  { name: '怀柔区', value: 6550 },
+  { name: '平谷区', value: 6980 },
+  { name: '密云区', value: 6120 },
+  { name: '延庆区', value: 5980 },
 ];
 
 const BEIJING_ENTERPRISE_MAP_NAME = 'beijing-enterprise-distribution';
-
-const beijingEnterpriseGeoJson: SimpleMapGeoJson = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      properties: { name: '门头沟区', cp: [115.93, 39.96] },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [115.78, 39.9],
-            [115.92, 40.12],
-            [116.05, 40.18],
-            [116.0, 39.98],
-            [116.08, 39.82],
-            [115.9, 39.75],
-            [115.78, 39.9],
-          ],
-        ],
-      },
-    },
-    {
-      type: 'Feature',
-      properties: { name: '海淀区', cp: [116.23, 40.08] },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [116.05, 40.18],
-            [116.15, 40.3],
-            [116.32, 40.36],
-            [116.45, 40.28],
-            [116.36, 40.12],
-            [116.18, 40.15],
-            [116.05, 40.18],
-          ],
-        ],
-      },
-    },
-    {
-      type: 'Feature',
-      properties: { name: '昌平区', cp: [116.3, 39.98] },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [116.18, 40.15],
-            [116.36, 40.12],
-            [116.46, 40.0],
-            [116.42, 39.86],
-            [116.28, 39.84],
-            [116.12, 39.95],
-            [116.18, 40.15],
-          ],
-        ],
-      },
-    },
-    {
-      type: 'Feature',
-      properties: { name: '丰台区', cp: [116.28, 39.76] },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [116.08, 39.82],
-            [116.28, 39.84],
-            [116.42, 39.86],
-            [116.48, 39.72],
-            [116.31, 39.64],
-            [116.12, 39.74],
-            [116.08, 39.82],
-          ],
-        ],
-      },
-    },
-    {
-      type: 'Feature',
-      properties: { name: '朝阳区', cp: [116.58, 39.78] },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [116.42, 39.86],
-            [116.62, 39.9],
-            [116.75, 39.78],
-            [116.63, 39.66],
-            [116.48, 39.72],
-            [116.42, 39.86],
-          ],
-        ],
-      },
-    },
-    {
-      type: 'Feature',
-      properties: { name: '密云区', cp: [116.68, 40.18] },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [116.45, 40.28],
-            [116.64, 40.34],
-            [116.86, 40.28],
-            [116.85, 40.08],
-            [116.64, 40.02],
-            [116.46, 40.14],
-            [116.45, 40.28],
-          ],
-        ],
-      },
-    },
-    {
-      type: 'Feature',
-      properties: { name: '顺义区', cp: [116.52, 40.02] },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [116.46, 40.14],
-            [116.64, 40.02],
-            [116.62, 39.9],
-            [116.42, 39.86],
-            [116.36, 40.12],
-            [116.46, 40.14],
-          ],
-        ],
-      },
-    },
-    {
-      type: 'Feature',
-      properties: { name: '通州区', cp: [116.77, 39.8] },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [116.62, 39.9],
-            [116.8, 39.92],
-            [116.92, 39.8],
-            [116.86, 39.64],
-            [116.63, 39.66],
-            [116.75, 39.78],
-            [116.62, 39.9],
-          ],
-        ],
-      },
-    },
-  ],
-};
+const hiddenBeijingMapLabels = new Set(['东城区', '西城区', '石景山区']);
 
 const productDistribution = [
   { name: '电子设备及元器件经销', value: 42 },
@@ -1039,7 +884,7 @@ function BeijingDistributionMap() {
   if (!echarts.getMap(BEIJING_ENTERPRISE_MAP_NAME)) {
     echarts.registerMap(
       BEIJING_ENTERPRISE_MAP_NAME,
-      beijingEnterpriseGeoJson as Parameters<typeof echarts.registerMap>[1],
+      beijingGeoJson as Parameters<typeof echarts.registerMap>[1],
     );
   }
 
@@ -1055,7 +900,7 @@ function BeijingDistributionMap() {
         },
       },
       visualMap: {
-        min: 8000,
+        min: 5800,
         max: 23171,
         left: 8,
         bottom: 22,
@@ -1082,16 +927,21 @@ function BeijingDistributionMap() {
           roam: false,
           selectedMode: false,
           layoutCenter: ['52%', '50%'],
-          layoutSize: '82%',
+          layoutSize: '98%',
           aspectScale: 0.92,
           data: beijingDistrictMapData,
           label: {
             show: true,
+            formatter: (params: EChartsFormatterParam) =>
+              hiddenBeijingMapLabels.has(params.name ?? '') ? '' : params.name,
             color: '#ffffff',
-            fontSize: 15,
+            fontSize: 13,
             fontWeight: 800,
             textBorderColor: 'rgba(30, 41, 59, 0.45)',
             textBorderWidth: 3,
+          },
+          labelLayout: {
+            hideOverlap: true,
           },
           itemStyle: {
             borderColor: '#ffffff',
