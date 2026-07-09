@@ -1,6 +1,5 @@
-import { Graph, NodeEvent } from '@antv/g6';
-import type { GraphData, LayoutOptions, NodeData, TreeData } from '@antv/g6';
-import { MindMap } from '@ant-design/graphs';
+import { Graph } from '@antv/g6';
+import type { GraphData, LayoutOptions } from '@antv/g6';
 import {
   ArrowLeftOutlined,
   BarChartOutlined,
@@ -34,16 +33,17 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   companies,
+  type ChainNodeStatus,
   type CompanyProfile,
   type IndustryGraphNode,
+  type IndustryMindMapNode,
   getCompanyList,
   getIndustryById,
   getIndustryOptions,
-  toIndustryMindMapData,
   toStrengthGraphData,
 } from '../../mock/industry';
 import beijingGeoJson from '../../assets/maps/beijing.json';
@@ -60,42 +60,72 @@ type NodeTooltipState = {
   node: IndustryGraphNode;
 };
 
-type NodeHoverPayload = {
-  localX: number;
-  localY: number;
-  containerRect: DOMRect;
+type SankeyStatusStyle = {
+  color: string;
+  textColor: string;
+  linkColor: string;
 };
 
-type PointerLikeEvent = {
-  clientX?: number;
-  clientY?: number;
-  canvasX?: number;
-  canvasY?: number;
-  viewportX?: number;
-  viewportY?: number;
-  client?: { x?: number; y?: number };
-  canvas?: { x?: number; y?: number };
-  viewport?: { x?: number; y?: number };
-  nativeEvent?: { clientX?: number; clientY?: number };
-  target?: { id?: string };
-  originalTarget?: { id?: string };
-  composedPath?: () => Array<{ id?: string }>;
+type IndustrySankeyNode = {
+  name: string;
+  displayName: string;
+  companyIds: string[];
+  depth: number;
+  nodeStatus: ChainNodeStatus;
+  itemStyle: { color: string; borderColor: string; borderWidth: number };
+  label: {
+    formatter: string;
+    color: string;
+    backgroundColor: string;
+    borderRadius: number;
+    fontSize: number;
+    fontWeight: number;
+    padding: number[];
+  };
 };
 
-const MIND_MAP_ANIMATION = { duration: 260 };
-const MIND_MAP_CONTAINER_STYLE = { height: 760 };
-const MIND_MAP_EDGE = {
-  style: {
-    lineWidth: 2.4,
-    strokeOpacity: 0.5,
-  },
+type IndustrySankeyLink = {
+  source: string;
+  target: string;
+  value: number;
+  lineStyle: { color: string; opacity: number; curveness: number };
 };
-const MIND_MAP_LAYOUT: LayoutOptions = {
-  type: 'mindmap',
-  getHGap: () => 82,
-  getSubTreeSep: () => 38,
-  getVGap: () => 18,
+
+type SankeyChartData = {
+  nodes: IndustrySankeyNode[];
+  links: IndustrySankeyLink[];
 };
+
+type SankeyMouseEvent = {
+  dataType?: string;
+  data?: Partial<IndustrySankeyNode>;
+  event?: {
+    offsetX?: number;
+    offsetY?: number;
+    clientX?: number;
+    clientY?: number;
+    event?: {
+      offsetX?: number;
+      offsetY?: number;
+      clientX?: number;
+      clientY?: number;
+    };
+  };
+};
+
+const sankeyStatusStyles: Record<ChainNodeStatus, SankeyStatusStyle> = {
+  strong: { color: '#ff563d', textColor: '#ffffff', linkColor: '#dcdfe5' },
+  middle: { color: '#ffa000', textColor: '#ffffff', linkColor: '#e3e5ea' },
+  weak: { color: '#1677ff', textColor: '#ffffff', linkColor: '#dfe5ef' },
+  empty: { color: '#a6a9ae', textColor: '#ffffff', linkColor: '#e6e8ec' },
+};
+
+const sankeyLegendItems: Array<{ label: string; status: ChainNodeStatus }> = [
+  { label: '强节点', status: 'strong' },
+  { label: '中节点', status: 'middle' },
+  { label: '弱节点', status: 'weak' },
+  { label: '空节点', status: 'empty' },
+];
 
 type EnterpriseDistributionRow = {
   id: string;
@@ -302,11 +332,11 @@ function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById
   const [drawerCompany, setDrawerCompany] = useState<CompanyProfile | null>(null);
   const graphShellRef = useRef<HTMLDivElement | null>(null);
   const hideTimerRef = useRef<number | undefined>();
-  const registeredMindMapRef = useRef<Graph | null>(null);
   const setCurrentCompanyId = useCompanyStore((state) => state.setCurrentCompanyId);
   const navigate = useNavigate();
 
-  const mindMapData = useMemo(() => toIndustryMindMapData(industry), [industry]);
+  const sankeyData = useMemo(() => toIndustrySankeyData(industry), [industry]);
+  const sankeyOption = useMemo(() => createSankeyOption(sankeyData), [sankeyData]);
 
   const closeTooltipSoon = useCallback(() => {
     window.clearTimeout(hideTimerRef.current);
@@ -318,55 +348,43 @@ function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById
     setDrawerCompany(company);
   };
 
-  const handleNodeMove = useCallback(
-    (event: NodeHoverPayload, node: IndustryGraphNode) => {
-      if (node.companyIds.length === 0) return;
-      const rect = event.containerRect;
-      const position = getTooltipPosition(event.localX, event.localY, rect, node.companyIds.length);
-      window.clearTimeout(hideTimerRef.current);
-      setTooltip({
-        x: position.x,
-        y: position.y,
-        node,
-      });
-    },
-    [],
-  );
+  const showSankeyTooltip = useCallback((params: SankeyMouseEvent) => {
+    const node = params.data;
+    const rect = graphShellRef.current?.getBoundingClientRect();
+    if (params.dataType !== 'node' || !node?.name || !rect) return;
+    if (!node.companyIds || node.companyIds.length === 0 || node.depth === 0) {
+      closeTooltipSoon();
+      return;
+    }
 
-  const handleMindMapReady = useCallback(
-    (graph: Graph) => {
-      if (graph.destroyed) return;
-      if (registeredMindMapRef.current === graph) return;
-      registeredMindMapRef.current = graph;
+    const pointerPosition = getSankeyPointerPosition(params, rect);
+    const position = getTooltipPosition(
+      pointerPosition.x,
+      pointerPosition.y,
+      rect,
+      node.companyIds.length,
+    );
 
-      const handlePointer = (event: unknown) => {
-        const pointerEvent = event as PointerLikeEvent;
-        const node = getNodeDataFromPointerEvent(graph, pointerEvent);
-        const nodeData = node ? toIndustryGraphNode(node) : undefined;
-        const containerRect = graphShellRef.current?.getBoundingClientRect();
-        if (!nodeData || !containerRect) return;
+    window.clearTimeout(hideTimerRef.current);
+    setTooltip({
+      x: position.x,
+      y: position.y,
+      node: {
+        id: node.name,
+        label: node.displayName ?? node.name,
+        companyIds: node.companyIds,
+      },
+    });
+  }, [closeTooltipSoon]);
 
-        const pointerPosition = getLocalPointerPosition(pointerEvent, containerRect);
-        handleNodeMove(
-          {
-            localX: pointerPosition.x,
-            localY: pointerPosition.y,
-            containerRect,
-          },
-          nodeData,
-        );
-      };
-
-      graph.on(NodeEvent.POINTER_ENTER, handlePointer);
-      graph.on(NodeEvent.POINTER_MOVE, handlePointer);
-      graph.on(NodeEvent.POINTER_LEAVE, closeTooltipSoon);
-      void graph.zoomTo(1).then(async () => {
-        if (graph.destroyed) return;
-        await graph.fitCenter();
-        if (!graph.destroyed) await graph.translateBy([150, 0]);
-      });
-    },
-    [closeTooltipSoon, handleNodeMove],
+  const sankeyEvents = useMemo(
+    () => ({
+      mouseover: showSankeyTooltip,
+      mousemove: showSankeyTooltip,
+      mouseout: closeTooltipSoon,
+      globalout: closeTooltipSoon,
+    }),
+    [closeTooltipSoon, showSankeyTooltip],
   );
 
   return (
@@ -380,7 +398,23 @@ function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById
           <span>当前节点：全部节点</span>
         </div>
         <div className="graph-shell" ref={graphShellRef}>
-          <IndustryMindMapCanvas data={mindMapData} onReady={handleMindMapReady} />
+          <div className="sankey-legend" aria-label="节点强弱图例">
+            {sankeyLegendItems.map((item) => (
+              <span key={item.status}>
+                <i style={{ background: sankeyStatusStyles[item.status].color }} />
+                {item.label}
+              </span>
+            ))}
+            <Checkbox>补链建议环节</Checkbox>
+            <Checkbox>延链建议环节</Checkbox>
+          </div>
+          <ReactECharts
+            className="industry-sankey-chart"
+            notMerge
+            onEvents={sankeyEvents}
+            option={sankeyOption}
+            style={{ height: 700 }}
+          />
           {tooltip ? (
             <div
               className="company-tooltip"
@@ -435,33 +469,154 @@ function IndustryMap({ industry }: { industry: ReturnType<typeof getIndustryById
   );
 }
 
-const IndustryMindMapCanvas = memo(function IndustryMindMapCanvas({
-  data,
-  onReady,
-}: {
-  data: TreeData;
-  onReady: (graph: Graph) => void;
-}) {
-  return (
-    <MindMap
-      animation={MIND_MAP_ANIMATION}
-      autoFit="center"
-      className="industry-mind-map"
-      containerStyle={MIND_MAP_CONTAINER_STYLE}
-      data={data}
-      defaultExpandLevel={6}
-      direction="right"
-      edge={MIND_MAP_EDGE}
-      labelField="label"
-      layout={MIND_MAP_LAYOUT}
-      nodeMaxWidth={220}
-      nodeMinWidth={124}
-      onReady={onReady}
-      padding={72}
-      type="boxed"
-    />
+function createSankeyOption(data: SankeyChartData) {
+  return {
+    backgroundColor: 'transparent',
+    animationDuration: 450,
+    tooltip: { show: false },
+    series: [
+      {
+        type: 'sankey',
+        data: data.nodes,
+        links: data.links,
+        left: 18,
+        right: 28,
+        top: 26,
+        bottom: 18,
+        nodeWidth: 12,
+        nodeGap: 16,
+        draggable: false,
+        layoutIterations: 72,
+        emphasis: {
+          focus: 'adjacency',
+          lineStyle: {
+            opacity: 0.28,
+          },
+        },
+        lineStyle: {
+          color: '#e2e5ea',
+          opacity: 0.58,
+          curveness: 0.52,
+        },
+      },
+    ],
+  };
+}
+
+function toIndustrySankeyData(industry: ReturnType<typeof getIndustryById>): SankeyChartData {
+  const nodes: IndustrySankeyNode[] = [];
+  const links: IndustrySankeyLink[] = [];
+  const visited = new Set<string>();
+
+  const walk = (node: IndustryMindMapNode, depth: number, parentId?: string) => {
+    const displayName = depth === 0 ? industry.name : node.label;
+    const companyIds = getSankeyCompanyIds(node, depth);
+    const nodeStatus = getSankeyNodeStatus(node, depth);
+    const style = sankeyStatusStyles[nodeStatus];
+
+    if (!visited.has(node.id)) {
+      visited.add(node.id);
+      nodes.push({
+        name: node.id,
+        displayName,
+        companyIds,
+        depth,
+        nodeStatus,
+        itemStyle: {
+          color: style.color,
+          borderColor: style.color,
+          borderWidth: 1,
+        },
+        label: {
+          formatter: displayName,
+          color: style.textColor,
+          backgroundColor: style.color,
+          borderRadius: 3,
+          fontSize: depth <= 1 ? 13 : 12,
+          fontWeight: 700,
+          padding: [3, 7],
+        },
+      });
+    }
+
+    if (parentId) {
+      links.push({
+        source: parentId,
+        target: node.id,
+        value: getSankeyWeight(node),
+        lineStyle: {
+          color: '#dfe2e8',
+          opacity: 0.56,
+          curveness: 0.52,
+        },
+      });
+    }
+
+    (node.children as IndustryMindMapNode[] | undefined)?.forEach((child) =>
+      walk(child, depth + 1, node.id),
+    );
+  };
+
+  walk(industry.graphTree, 0);
+
+  return { nodes, links };
+}
+
+function getSankeyNodeStatus(node: IndustryMindMapNode, depth: number): ChainNodeStatus {
+  if (depth === 0) return 'empty';
+  if (depth === 1) return 'middle';
+  if (node.companyIds.length >= 2) return 'strong';
+  if (node.companyIds.length === 1) return 'weak';
+  if (depth === 2) return 'middle';
+  return 'empty';
+}
+
+function getSankeyCompanyIds(node: IndustryMindMapNode, depth: number) {
+  if (node.companyIds.length > 0) return node.companyIds;
+  if (depth === 0 || companies.length === 0) return [];
+
+  const companyIds = companies.map((company) => company.id);
+  const offset =
+    node.id.split('').reduce((total, char) => total + char.charCodeAt(0), 0) %
+    companyIds.length;
+
+  return companyIds.map((_, index) => companyIds[(offset + index) % companyIds.length]);
+}
+
+function getSankeyWeight(node: IndustryMindMapNode): number {
+  const children = node.children as IndustryMindMapNode[] | undefined;
+  if (!children || children.length === 0) return 1;
+  return Math.max(
+    1,
+    children.reduce((total, child) => total + getSankeyWeight(child), 0),
   );
-});
+}
+
+function getSankeyPointerPosition(params: SankeyMouseEvent, containerRect: DOMRect) {
+  const event = params.event;
+  const browserEvent = event?.event;
+  const offsetPoint =
+    getPointFromValues(event?.offsetX, event?.offsetY) ??
+    getPointFromValues(browserEvent?.offsetX, browserEvent?.offsetY);
+
+  if (offsetPoint) return offsetPoint;
+
+  const clientPoint =
+    getPointFromValues(event?.clientX, event?.clientY) ??
+    getPointFromValues(browserEvent?.clientX, browserEvent?.clientY);
+
+  if (clientPoint) {
+    return {
+      x: clientPoint.x - containerRect.left,
+      y: clientPoint.y - containerRect.top,
+    };
+  }
+
+  return {
+    x: containerRect.width / 2,
+    y: containerRect.height / 2,
+  };
+}
 
 function TrendCharts({ industry }: { industry: ReturnType<typeof getIndustryById> }) {
   const years = ['2022', '2023', '2024', '2025', '2026'];
@@ -1050,97 +1205,6 @@ function G6Graph({
   return <div className="g6-graph" ref={containerRef} style={{ height }} />;
 }
 
-function getNodeDataFromPointerEvent(graph: Graph, event: PointerLikeEvent) {
-  const targetIds = [
-    event.target?.id,
-    event.originalTarget?.id,
-    ...(event.composedPath?.().map((target) => target.id) ?? []),
-  ].filter((nodeId): nodeId is string => typeof nodeId === 'string' && nodeId.length > 0);
-
-  for (const nodeId of targetIds) {
-    try {
-      return graph.getNodeData(nodeId) as NodeData;
-    } catch {
-      // G6 can report the inner shape id first; keep walking the event path.
-    }
-  }
-
-  return undefined;
-}
-
-function toIndustryGraphNode(node: NodeData): IndustryGraphNode | undefined {
-  const topLevelNode = node as NodeData & Partial<IndustryGraphNode>;
-  const payload = (node.data ?? {}) as Partial<IndustryGraphNode>;
-  const id = typeof topLevelNode.id === 'string' ? topLevelNode.id : payload.id;
-  const label =
-    typeof topLevelNode.label === 'string'
-      ? topLevelNode.label
-      : typeof payload.label === 'string'
-        ? payload.label
-        : id;
-  const companyIds = Array.isArray(topLevelNode.companyIds)
-    ? topLevelNode.companyIds
-    : Array.isArray(payload.companyIds)
-      ? payload.companyIds
-      : [];
-
-  if (!id || !label) return undefined;
-
-  return {
-    id,
-    label,
-    companyIds,
-  };
-}
-
-function getLocalPointerPosition(event: PointerLikeEvent, containerRect: DOMRect) {
-  const browserPoint =
-    getPointFromValues(event.nativeEvent?.clientX, event.nativeEvent?.clientY) ??
-    getPointFromValues(event.clientX, event.clientY);
-
-  if (browserPoint) {
-    return {
-      x: browserPoint.x - containerRect.left,
-      y: browserPoint.y - containerRect.top,
-    };
-  }
-
-  const candidates = [
-    getPoint(event.client),
-    getPoint(event.viewport),
-    getPointFromValues(event.viewportX, event.viewportY),
-    getPoint(event.canvas),
-    getPointFromValues(event.canvasX, event.canvasY),
-  ];
-
-  for (const point of candidates) {
-    if (!point) continue;
-    if (point.x <= containerRect.width + 48 && point.y <= containerRect.height + 48) {
-      return point;
-    }
-
-    return {
-      x: point.x - containerRect.left,
-      y: point.y - containerRect.top,
-    };
-  }
-
-  if (
-    typeof event.nativeEvent?.clientX === 'number' &&
-    typeof event.nativeEvent.clientY === 'number'
-  ) {
-    return {
-      x: event.nativeEvent.clientX - containerRect.left,
-      y: event.nativeEvent.clientY - containerRect.top,
-    };
-  }
-
-  return {
-    x: containerRect.width / 2,
-    y: containerRect.height / 2,
-  };
-}
-
 function getTooltipPosition(
   pointerX: number,
   pointerY: number,
@@ -1169,10 +1233,6 @@ function getTooltipPosition(
     x: Math.min(Math.max(x, padding), maxX),
     y: Math.min(Math.max(y, padding), maxY),
   };
-}
-
-function getPoint(point?: { x?: number; y?: number }) {
-  return getPointFromValues(point?.x, point?.y);
 }
 
 function getPointFromValues(x?: number, y?: number) {

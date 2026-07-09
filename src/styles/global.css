@@ -2346,6 +2346,40 @@ select {
   min-height: 760px;
 }
 
+.sankey-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 18px 6px;
+  color: #8a93a3;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sankey-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.sankey-legend i {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+}
+
+.sankey-legend .ant-checkbox-wrapper {
+  color: #53647f;
+  font-weight: 800;
+}
+
+.industry-sankey-chart {
+  width: 100%;
+}
+
 .g6-graph {
   width: 100%;
 }
