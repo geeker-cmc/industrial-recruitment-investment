@@ -37,9 +37,9 @@ export default function LoginPage() {
           <SafetyCertificateOutlined />
           <span>产业招投平台</span>
         </div>
-        <h1>产业洞察与股权投资业务管理工作台</h1>
+        <h1>AI+产业招投平台</h1>
         <p>
-          统一承载首页看板、项目全生命周期、投资客户、风险、文档、智能体工具和产业洞察流程。
+          四链合一，以AI赋能招投全周期
         </p>
         <div className="login-page__metrics" aria-label="平台概览">
           <div>

@@ -1,6 +1,7 @@
 import {
   AuditOutlined,
   CloudUploadOutlined,
+  FileProtectOutlined,
   FileSearchOutlined,
   ProfileOutlined,
   SafetyCertificateOutlined,
@@ -22,7 +23,8 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   agentTasks,
   investmentProjects,
@@ -58,11 +60,17 @@ const agentMenus = [
 ];
 
 export default function AgentToolsPage() {
+  const [searchParams] = useSearchParams();
   const [activeKey, setActiveKey] = useState<AgentMenuKey>('due-diligence');
   const [tasks, setTasks] = useState<AgentTask[]>(agentTasks);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeResult, setActiveResult] = useState<AgentTask | null>(null);
   const [form] = Form.useForm<AgentTaskFormValues>();
+
+  useEffect(() => {
+    if (searchParams.get('tool') === 'contract') setActiveKey('contract');
+    if (searchParams.get('tool') === 'due-diligence') setActiveKey('due-diligence');
+  }, [searchParams]);
 
   const activeAgent = agentMenus.find((item) => item.key === activeKey) ?? agentMenus[0]!;
   const tableRows = useMemo(
@@ -328,6 +336,8 @@ function agentColumns({
 }
 
 function AgentResultContent({ task }: { task: AgentTask }) {
+  const [templateGenerated, setTemplateGenerated] = useState(false);
+
   if (task.tool === '尽调报告') {
     return (
       <div className="agent-result-content">
@@ -357,6 +367,91 @@ function AgentResultContent({ task }: { task: AgentTask }) {
         <Descriptions.Item label="修改建议">补充付款材料清单，明确回购触发口径，增加交割延期违约责任。</Descriptions.Item>
         <Descriptions.Item label="AI结论">建议法务确认高风险条款后再进入用印和交割。</Descriptions.Item>
       </Descriptions>
+      <section className="agent-result-section">
+        <h3>
+          <SafetyCertificateOutlined />
+          法规与格式条款梳理
+        </h3>
+        <Table
+          columns={[
+            { title: '条款类型', dataIndex: 'clause', width: 130 },
+            { title: '法规/制度依据', dataIndex: 'basis' },
+            {
+              title: '风险等级',
+              dataIndex: 'level',
+              width: 100,
+              render: (level) => <Tag color={level === '高' ? 'red' : level === '中' ? 'orange' : 'green'}>{level}</Tag>,
+            },
+            { title: 'AI建议', dataIndex: 'advice' },
+          ]}
+          dataSource={[
+            {
+              id: 'clause-1',
+              clause: '分期出资',
+              basis: '公司章程、投委会决议、集团投资管理办法',
+              level: '中',
+              advice: '补充付款前置材料清单和每期触发条件。',
+            },
+            {
+              id: 'clause-2',
+              clause: '信息权',
+              basis: '股东知情权、投后管理制度、历史投资协议模板',
+              level: '高',
+              advice: '披露频率由半年调整为季度，并增加重大事项即时告知。',
+            },
+            {
+              id: 'clause-3',
+              clause: '回购触发',
+              basis: '公司法相关规则、合同编一般规则、集团风控口径',
+              level: '中',
+              advice: '明确触发口径、宽限期和董事会确认流程。',
+            },
+          ]}
+          pagination={false}
+          rowKey="id"
+          size="small"
+        />
+      </section>
+      <section className="agent-result-section">
+        <div className="agent-template-header">
+          <h3>
+            <FileProtectOutlined />
+            南通产控专属协议模板
+          </h3>
+          <Button
+            onClick={() => {
+              setTemplateGenerated(true);
+              message.success('已基于 23 份历史投资协议生成专属模板');
+            }}
+            type="primary"
+          >
+            生成专属模板
+          </Button>
+        </div>
+        {templateGenerated ? (
+          <div className="agent-template-result">
+            <div>
+              <span>历史协议样本</span>
+              <strong>23 份</strong>
+              <small>覆盖先进制造、电子信息、新材料项目</small>
+            </div>
+            <div>
+              <span>新增专属条款</span>
+              <strong>6 条</strong>
+              <small>投后管理权、分期出资、反稀释、重大事项披露</small>
+            </div>
+            <div>
+              <span>模板状态</span>
+              <strong>已生成</strong>
+              <small>可回写项目文档并进入法务复核</small>
+            </div>
+          </div>
+        ) : (
+          <p className="agent-template-empty">
+            点击生成后，系统会引用南通产控历史投资协议，生成专属条款清单和模板差异摘要。
+          </p>
+        )}
+      </section>
     </div>
   );
 }

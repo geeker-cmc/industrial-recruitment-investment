@@ -1,11 +1,12 @@
 import {
   AppstoreOutlined,
   CompassOutlined,
+  DatabaseOutlined,
   FileProtectOutlined,
   HomeOutlined,
   LogoutOutlined,
   ProjectOutlined,
-  RobotOutlined,
+  SearchOutlined,
   TeamOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
@@ -28,13 +29,25 @@ export default function AppHeader() {
   const managementNavItems = [
     {
       to: '/dashboard',
-      label: '首页',
+      label: '工作台',
       icon: <HomeOutlined />,
       active: location.pathname.startsWith('/dashboard') || location.pathname === '/',
     },
     {
+      to: '/opportunity-discovery',
+      label: '发现企业',
+      icon: <SearchOutlined />,
+      active: location.pathname.startsWith('/opportunity-discovery'),
+    },
+    {
+      to: '/home',
+      label: '产业洞察',
+      icon: <CompassOutlined />,
+      active: isIndustryModule,
+    },
+    {
       to: '/project-management',
-      label: '项目管理',
+      label: '投资分析',
       icon: <ProjectOutlined />,
       active:
         location.pathname.startsWith('/project-management') ||
@@ -43,14 +56,8 @@ export default function AppHeader() {
         location.pathname.startsWith('/investment-pool'),
     },
     {
-      to: '/customer-management',
-      label: '客户管理',
-      icon: <TeamOutlined />,
-      active: location.pathname.startsWith('/customer-management'),
-    },
-    {
       to: '/risk-management',
-      label: '风险管理',
+      label: '风控监测',
       icon: <WarningOutlined />,
       active:
         location.pathname.startsWith('/risk-management') ||
@@ -59,21 +66,21 @@ export default function AppHeader() {
     },
     {
       to: '/document-management',
-      label: '文档管理',
+      label: 'skill合集',
       icon: <FileProtectOutlined />,
       active: location.pathname.startsWith('/document-management'),
     },
     {
-      to: '/agents',
-      label: '智能体',
-      icon: <RobotOutlined />,
-      active: location.pathname.startsWith('/agents'),
+      to: '/customer-management',
+      label: '客户管理',
+      icon: <TeamOutlined />,
+      active: location.pathname.startsWith('/customer-management'),
     },
     {
-      to: '/home',
-      label: '产业洞察',
-      icon: <CompassOutlined />,
-      active: isIndustryModule,
+      to: '/knowledge-base',
+      label: '知识库',
+      icon: <DatabaseOutlined />,
+      active: location.pathname.startsWith('/knowledge-base'),
     },
   ];
 

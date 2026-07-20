@@ -83,6 +83,8 @@ export type InvestmentProject = {
   risks: ProjectRisk[];
   documents: ProjectDocument[];
   agentOutputs: AgentOutput[];
+  opportunitySource?: string;
+  opportunityReason?: string;
 };
 
 export type CustomerRecord = {

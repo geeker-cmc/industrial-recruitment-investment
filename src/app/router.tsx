@@ -12,6 +12,9 @@ const CompanyDetailPage = lazy(() => import('../pages/CompanyDetail'));
 const BusinessManagementPage = lazy(() => import('../pages/BusinessManagement'));
 const ProjectDetailPage = lazy(() => import('../pages/ProjectDetail'));
 const AgentToolsPage = lazy(() => import('../pages/AgentTools'));
+const ReportFactoryPage = lazy(() => import('../pages/ReportFactory'));
+const KnowledgeBasePage = lazy(() => import('../pages/KnowledgeBase'));
+const OpportunityDiscoveryPage = lazy(() => import('../pages/OpportunityDiscovery'));
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -116,11 +119,19 @@ const router = createHashRouter([
       },
       {
         path: 'document-management',
-        element: withPageLoader(<BusinessManagementPage moduleKey="document" />),
+        element: withPageLoader(<ReportFactoryPage />),
       },
       {
         path: 'agents',
         element: withPageLoader(<AgentToolsPage />),
+      },
+      {
+        path: 'knowledge-base',
+        element: withPageLoader(<KnowledgeBasePage />),
+      },
+      {
+        path: 'opportunity-discovery',
+        element: withPageLoader(<OpportunityDiscoveryPage />),
       },
     ],
   },

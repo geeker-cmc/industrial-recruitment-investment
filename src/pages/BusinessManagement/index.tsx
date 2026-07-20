@@ -20,13 +20,12 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { companies } from '../../mock/industry';
 import {
   customerRecords,
   documentRecords,
-  investmentProjects,
   riskRecords,
   type CustomerRecord,
   type DocumentRecord,
@@ -36,6 +35,7 @@ import {
   type RiskLevel,
   type RiskRecord,
 } from '../../mock/investment';
+import { useInvestmentStore } from '../../stores/useInvestmentStore';
 
 type ManagementKey = 'project' | 'customer' | 'risk' | 'document';
 type ModalKey = ManagementKey | null;
@@ -55,6 +55,8 @@ type ProjectFormValues = {
   targetAmount: number;
   owner: string;
   capitalPlan: string;
+  opportunitySource?: string;
+  opportunityReason?: string;
 };
 
 type CustomerFormValues = {
@@ -146,7 +148,10 @@ export default function BusinessManagementPage({
   moduleKey?: ManagementKey;
 }) {
   const activeModule = modules[moduleKey] ?? modules.project;
-  const [projects, setProjects] = useState<InvestmentProject[]>(investmentProjects);
+  const location = useLocation();
+  const projects = useInvestmentStore((state) => state.projects);
+  const addProjectToStore = useInvestmentStore((state) => state.addProject);
+  const updateProject = useInvestmentStore((state) => state.updateProject);
   const [customers, setCustomers] = useState<CustomerRecord[]>(customerRecords);
   const [risks, setRisks] = useState<RiskRecord[]>(riskRecords);
   const [documents, setDocuments] = useState<DocumentRecord[]>(documentRecords);
@@ -155,6 +160,24 @@ export default function BusinessManagementPage({
   const [projectForm] = Form.useForm<ProjectFormValues>();
   const [customerForm] = Form.useForm<CustomerFormValues>();
   const [documentForm] = Form.useForm<DocumentFormValues>();
+
+  useEffect(() => {
+    if (moduleKey !== 'project' || !location.search) return;
+    const params = new URLSearchParams(location.search);
+    const companyId = params.get('companyId');
+    const company = companies.find((item) => item.id === companyId);
+    if (!company) return;
+    projectForm.setFieldsValue({
+      name: `${company.shortName}投资项目`,
+      companyId: company.id,
+      targetAmount: 2000,
+      capitalPlan: params.get('recommendationSource') ? `${params.get('recommendationSource')}专项资金计划` : '产业投资专项资金计划',
+      owner: '张小令',
+      opportunitySource: params.get('recommendationSource') ?? '企业画像推荐',
+      opportunityReason: params.get('recommendationReason') ?? '基于企业画像进入项目储备。',
+    });
+    setActiveModal('project');
+  }, [location.search, moduleKey, projectForm]);
 
   const openPrimaryAction = () => {
     if (activeModule.key === 'risk') {
@@ -173,25 +196,22 @@ export default function BusinessManagementPage({
   };
 
   const advanceProject = (projectId: string) => {
-    setProjects((rows) =>
-      rows.map((row) => {
-        if (row.id !== projectId) return row;
-        const currentIndex = projectStatusFlow.indexOf(row.status);
-        if (currentIndex < 0 || currentIndex === projectStatusFlow.length - 1 || row.status === '已终止') {
-          message.info('当前项目已到终态，无法继续推进');
-          return row;
-        }
-        const nextStatus = projectStatusFlow[currentIndex + 1]!;
-        message.success(`${row.name} 已推进至 ${nextStatus}`);
-        return {
-          ...row,
-          status: nextStatus,
-          stage: stageByStatus[nextStatus],
-          progress: Math.min(100, row.progress + 8),
-          nextAction: nextActionByStatus(nextStatus),
-        };
-      }),
-    );
+    const currentProject = projects.find((row) => row.id === projectId);
+    if (!currentProject) return;
+    const currentIndex = projectStatusFlow.indexOf(currentProject.status);
+    if (currentIndex < 0 || currentIndex === projectStatusFlow.length - 1 || currentProject.status === '已终止') {
+      message.info('当前项目已到终态，无法继续推进');
+      return;
+    }
+    const nextStatus = projectStatusFlow[currentIndex + 1]!;
+    updateProject(projectId, (row) => ({
+      ...row,
+      status: nextStatus,
+      stage: stageByStatus[nextStatus],
+      progress: Math.min(100, row.progress + 8),
+      nextAction: nextActionByStatus(nextStatus),
+    }));
+    message.success(`${currentProject.name} 已推进至 ${nextStatus}`);
   };
 
   const addProject = (values: ProjectFormValues) => {
@@ -220,8 +240,10 @@ export default function BusinessManagementPage({
       risks: [],
       documents: [],
       agentOutputs: [],
+      opportunitySource: values.opportunitySource,
+      opportunityReason: values.opportunityReason,
     };
-    setProjects((rows) => [project, ...rows]);
+    addProjectToStore(project);
     projectForm.resetFields();
     setActiveModal(null);
     message.success('新建项目成功');
@@ -358,7 +380,7 @@ export default function BusinessManagementPage({
           <Form.Item label="被投企业" name="companyId" rules={[{ required: true, message: '请选择被投企业' }]}>
             <Select
               placeholder="请选择被投企业"
-              options={companies.slice(0, 12).map((item) => ({ label: item.name, value: item.id }))}
+              options={companies.map((item) => ({ label: item.name, value: item.id }))}
             />
           </Form.Item>
           <Form.Item label="拟投金额（万元）" name="targetAmount" rules={[{ required: true, message: '请输入拟投金额' }]}>
@@ -366,6 +388,12 @@ export default function BusinessManagementPage({
           </Form.Item>
           <Form.Item label="资金计划" name="capitalPlan" rules={[{ required: true, message: '请输入资金计划' }]}>
             <Input placeholder="例如：电子信息一期资金计划" />
+          </Form.Item>
+          <Form.Item label="机会来源" name="opportunitySource">
+            <Input placeholder="例如：投资风格相似、产业链补链" />
+          </Form.Item>
+          <Form.Item label="推荐依据" name="opportunityReason">
+            <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} placeholder="请输入推荐企业进入项目的依据" />
           </Form.Item>
           <Form.Item label="负责人" name="owner" rules={[{ required: true, message: '请输入负责人' }]}>
             <Input placeholder="请输入负责人" />

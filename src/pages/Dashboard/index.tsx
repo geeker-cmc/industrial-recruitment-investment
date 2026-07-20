@@ -1,4 +1,6 @@
 import {
+  ArrowRightOutlined,
+  BulbOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   FileProtectOutlined,
@@ -8,11 +10,12 @@ import {
   TeamOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import { Button, Progress, Table, Tag } from 'antd';
+import { Button, Progress, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import ReactECharts from 'echarts-for-react';
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { buildInvestmentStyleProfile, getOpportunityRecommendations } from '../../mock/opportunity';
 import {
   agentTasks,
   customerRecords,
@@ -145,6 +148,11 @@ export default function DashboardPage() {
   const activeRiskCount = riskRecords.filter((item) => item.status !== '已闭环').length;
   const pendingDocs = documentRecords.filter((item) => item.status !== '已归档').length;
   const agentPending = agentTasks.filter((item) => item.status !== '已完成').length;
+  const opportunityProfile = useMemo(() => buildInvestmentStyleProfile(), []);
+  const opportunityRecommendations = useMemo(
+    () => getOpportunityRecommendations({ strategy: 'investment-style' }).slice(0, 4),
+    [],
+  );
 
   return (
     <main className="dashboard-page">
@@ -160,6 +168,51 @@ export default function DashboardPage() {
           </Button>
           <Button href="#/agents">打开智能体</Button>
         </div>
+      </section>
+
+      <section className="dashboard-panel dashboard-opportunity-panel">
+        <div className="dashboard-section-title">
+          <h2>
+            <BulbOutlined />
+            推荐商机
+          </h2>
+          <Space size={14}>
+            <span className="dashboard-opportunity-source">
+              基于 {opportunityProfile.sampleCount} 家投中/投后样本
+            </span>
+            <Link to="/opportunity-discovery">
+              更多 <ArrowRightOutlined />
+            </Link>
+          </Space>
+        </div>
+        {opportunityRecommendations.length ? (
+          <div className="dashboard-opportunity-grid">
+            {opportunityRecommendations.map((item) => (
+              <article className="dashboard-opportunity-card" key={item.company.id}>
+                <div className="dashboard-opportunity-card__topline">
+                  <Tag color="blue">推荐 {item.score}</Tag>
+                  <Tag>{item.recommendationSources[0]}</Tag>
+                </div>
+                <Link className="dashboard-opportunity-card__name" to={opportunityCompanyPath(item)}>
+                  {item.company.name}
+                </Link>
+                <div className="dashboard-opportunity-card__chains">
+                  {item.company.industries.slice(0, 2).map((industry) => <Tag key={industry}>{industry.replace('产业链', '')}</Tag>)}
+                </div>
+                <p>{item.reason}</p>
+                <div className="dashboard-opportunity-card__footer">
+                  <span>综合评价 {item.meta.score} 分</span>
+                  <Link to={opportunityCompanyPath(item)}>查看画像</Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="dashboard-opportunity-empty">
+            暂无推荐结果，请进入发现企业调整产业链、认证或区域条件。
+            <Link to="/opportunity-discovery">进入发现企业</Link>
+          </div>
+        )}
       </section>
 
       <section className="dashboard-metrics" aria-label="首页指标">
@@ -328,4 +381,16 @@ function riskColor(level: RiskLevel) {
     低: 'green',
   };
   return colors[level];
+}
+
+function opportunityCompanyPath(item: {
+  company: { id: string };
+  recommendationSources: string[];
+  reason: string;
+}) {
+  const params = new URLSearchParams({
+    recommendationSource: item.recommendationSources.join('、'),
+    recommendationReason: item.reason,
+  });
+  return `/companies/${item.company.id}?${params.toString()}`;
 }
