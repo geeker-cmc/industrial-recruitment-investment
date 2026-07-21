@@ -149,6 +149,7 @@ export default function BusinessManagementPage({
 }) {
   const activeModule = modules[moduleKey] ?? modules.project;
   const location = useLocation();
+  const hideRiskHeaderActions = location.pathname === '/risk-management';
   const projects = useInvestmentStore((state) => state.projects);
   const addProjectToStore = useInvestmentStore((state) => state.addProject);
   const updateProject = useInvestmentStore((state) => state.updateProject);
@@ -293,12 +294,14 @@ export default function BusinessManagementPage({
             <h1>{activeModule.navName}</h1>
             <p>{activeModule.description}</p>
           </div>
-          <Space>
-            <Button icon={<FileSearchOutlined />}>高级筛选</Button>
-            <Button icon={activeModule.primaryIcon} onClick={openPrimaryAction} type="primary">
-              {activeModule.primaryAction}
-            </Button>
-          </Space>
+          {!hideRiskHeaderActions && (
+            <Space>
+              <Button icon={<FileSearchOutlined />}>高级筛选</Button>
+              <Button icon={activeModule.primaryIcon} onClick={openPrimaryAction} type="primary">
+                {activeModule.primaryAction}
+              </Button>
+            </Space>
+          )}
         </header>
 
         <TableModule

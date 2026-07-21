@@ -2578,6 +2578,75 @@ select {
   line-height: 1.7;
 }
 
+.agent-template-workflow {
+  display: grid;
+  gap: 16px;
+}
+
+.agent-template-workflow .ant-steps {
+  padding: 4px 2px 0;
+}
+
+.agent-template-workflow .ant-steps-item-title {
+  color: #263149 !important;
+  font-weight: 800;
+}
+
+.agent-template-workflow .ant-steps-item-description {
+  color: #71809a !important;
+  font-size: 12px;
+}
+
+.agent-template-workflow .agent-template-result {
+  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
+}
+
+.agent-template-workflow .agent-template-result div {
+  min-width: 0;
+  min-height: 122px;
+}
+
+.agent-template-workflow .agent-template-result strong {
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.agent-template-workflow .ant-divider {
+  margin: 0;
+  color: #263149;
+  font-weight: 800;
+}
+
+.agent-template-workflow .ant-table-wrapper {
+  overflow-x: auto;
+}
+
+.agent-template-actions {
+  display: grid;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.agent-template-actions .ant-btn {
+  min-height: 34px;
+}
+
+.agent-template-action-hint {
+  color: #64728a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.agent-template-config-note {
+  padding: 12px 14px;
+  color: #52627b;
+  background: #f5f8fd;
+  border: 1px solid #e1e9f5;
+  border-radius: 8px;
+  line-height: 1.7;
+}
+
 .agent-flow__steps {
   display: grid;
   grid-template-columns: repeat(4, minmax(140px, 1fr));
@@ -3937,21 +4006,24 @@ select {
 }
 
 .opportunity-strategy-group {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   width: 100%;
 }
 
 .opportunity-strategy-group .ant-radio-button-wrapper {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 54px;
-  padding: 7px 12px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+  height: 32px;
+  padding: 0 12px;
   color: #40506a;
-  line-height: 1.25;
-  white-space: normal;
+  background: #f5f8fd;
+  line-height: 30px;
+  white-space: nowrap;
   border: 1px solid #dfe8f4;
+  border-radius: 999px !important;
 }
 
 .opportunity-strategy-group .ant-radio-button-wrapper:not(:first-child)::before {
@@ -3959,30 +4031,25 @@ select {
 }
 
 .opportunity-strategy-group .ant-radio-button-wrapper:first-child {
-  border-radius: 6px 0 0 6px;
+  border-radius: 999px !important;
 }
 
 .opportunity-strategy-group .ant-radio-button-wrapper:last-child {
-  border-radius: 0 6px 6px 0;
+  border-radius: 999px !important;
 }
 
 .opportunity-strategy-group .ant-radio-button-wrapper-checked {
   color: #1677ff;
-  background: #f1f7ff;
+  background: #eaf3ff;
   border-color: #1677ff;
   box-shadow: none;
 }
 
-.opportunity-strategy-group strong {
-  font-size: 14px;
-}
-
-.opportunity-strategy-group span {
-  margin-top: 3px;
-  color: #7a879b;
-  font-size: 11px;
+.opportunity-strategy-chip {
+  display: block;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 30px;
 }
 
 .opportunity-filter-panel {
@@ -4288,7 +4355,7 @@ select {
   }
 
   .opportunity-strategy-group {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
   }
 
   .opportunity-filter-options .ant-checkbox-group {
@@ -4326,13 +4393,13 @@ select {
   }
 
   .opportunity-strategy-group {
-    grid-template-columns: 1fr;
+    gap: 7px;
   }
 
   .opportunity-strategy-group .ant-radio-button-wrapper,
   .opportunity-strategy-group .ant-radio-button-wrapper:first-child,
   .opportunity-strategy-group .ant-radio-button-wrapper:last-child {
-    border-radius: 6px;
+    border-radius: 999px !important;
   }
 
   .opportunity-filter-options {

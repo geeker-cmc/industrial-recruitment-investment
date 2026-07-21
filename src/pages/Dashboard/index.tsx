@@ -166,7 +166,6 @@ export default function DashboardPage() {
           <Button href="#/project-management" type="primary">
             查看项目管理
           </Button>
-          <Button href="#/agents">打开智能体</Button>
         </div>
       </section>
 

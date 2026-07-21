@@ -21,7 +21,6 @@ import {
   Collapse,
   Divider,
   Input,
-  Progress,
   Radio,
   Space,
   Table,
@@ -110,21 +109,10 @@ export default function OpportunityDiscoveryPage() {
 
   const columns: ColumnsType<OpportunityRecommendation> = [
     {
-      title: '推荐度',
-      dataIndex: 'score',
-      width: 112,
-      fixed: 'left',
-      render: (score: number) => (
-        <div className="opportunity-score-cell">
-          <strong>{score}</strong>
-          <Progress percent={score} showInfo={false} size="small" strokeColor="#1677ff" />
-        </div>
-      ),
-    },
-    {
       title: '企业名称',
       dataIndex: ['company', 'name'],
       width: 250,
+      fixed: 'left',
       render: (_value, record) => (
         <div className="opportunity-company-cell">
           <Link to={companyDetailPath(record)}>{record.company.name}</Link>
@@ -238,8 +226,7 @@ export default function OpportunityDiscoveryPage() {
         >
           {opportunityStrategies.map((item) => (
             <Radio.Button key={item.key} value={item.key}>
-              <strong>{item.label}</strong>
-              <span>{item.description}</span>
+              <span className="opportunity-strategy-chip">{item.label}</span>
             </Radio.Button>
           ))}
         </Radio.Group>
@@ -260,7 +247,7 @@ export default function OpportunityDiscoveryPage() {
         <Collapse
           className="opportunity-filter-collapse"
           bordered={false}
-          defaultActiveKey={['technologyCertifications', 'industry', 'region']}
+          defaultActiveKey={[]}
           items={opportunityFilterGroups.map((group) => {
             const values = draftFilters[group.key] ?? [];
             return {

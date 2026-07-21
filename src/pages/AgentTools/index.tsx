@@ -1,5 +1,6 @@
 import {
   AuditOutlined,
+  CheckCircleOutlined,
   CloudUploadOutlined,
   FileProtectOutlined,
   FileSearchOutlined,
@@ -8,7 +9,9 @@ import {
 } from '@ant-design/icons';
 import {
   Button,
+  Checkbox,
   Descriptions,
+  Divider,
   Drawer,
   Form,
   Input,
@@ -16,6 +19,7 @@ import {
   Progress,
   Select,
   Space,
+  Steps,
   Table,
   Tag,
   Upload,
@@ -24,7 +28,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   agentTasks,
   investmentProjects,
@@ -37,6 +41,20 @@ type AgentTaskFormValues = {
   projectName: string;
   input: string;
   files: UploadFile[];
+};
+
+type TemplateFormValues = {
+  name: string;
+  projectName: string;
+  reference: string;
+  clauseFocus: string[];
+};
+
+type TemplateStage = '待确认' | '已确认' | '已应用' | '已归档';
+
+type ContractTemplateDraft = TemplateFormValues & {
+  stage: TemplateStage;
+  generatedAt: string;
 };
 
 const normalizeUploadFileList = (event?: { fileList?: UploadFile[] } | UploadFile[]) =>
@@ -61,6 +79,7 @@ const agentMenus = [
 
 export default function AgentToolsPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeKey, setActiveKey] = useState<AgentMenuKey>('due-diligence');
   const [tasks, setTasks] = useState<AgentTask[]>(agentTasks);
   const [modalOpen, setModalOpen] = useState(false);
@@ -124,6 +143,22 @@ export default function AgentToolsPage() {
       ),
     );
     message.success('解析结果已回写业务模块');
+  };
+
+  const applyTemplateToProject = (taskId: string) => {
+    setTasks((rows) =>
+      rows.map((row) =>
+        row.id === taskId
+          ? {
+              ...row,
+              status: '已回写',
+              finding: '专属协议模板已确认并应用到项目文档，等待法务用印与交割。',
+              updatedAt: '2026-07-20',
+            }
+          : row,
+      ),
+    );
+    message.success('专属模板已应用到项目文档');
   };
 
   return (
@@ -253,7 +288,14 @@ export default function AgentToolsPage() {
         width={620}
       >
         {activeResult && (
-          <AgentResultContent task={activeResult} />
+          <AgentResultContent
+            navigateToProject={(projectName) => {
+              const project = investmentProjects.find((item) => item.name === projectName);
+              if (project) navigate(`/projects/${project.id}`);
+            }}
+            onTemplateApplied={applyTemplateToProject}
+            task={activeResult}
+          />
         )}
       </Drawer>
     </main>
@@ -335,8 +377,54 @@ function agentColumns({
   ];
 }
 
-function AgentResultContent({ task }: { task: AgentTask }) {
-  const [templateGenerated, setTemplateGenerated] = useState(false);
+function AgentResultContent({
+  task,
+  onTemplateApplied,
+  navigateToProject,
+}: {
+  task: AgentTask;
+  onTemplateApplied: (taskId: string) => void;
+  navigateToProject: (projectName: string) => void;
+}) {
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [templateDraft, setTemplateDraft] = useState<ContractTemplateDraft | null>(null);
+  const [templateForm] = Form.useForm<TemplateFormValues>();
+
+  const templateStep = templateDraft
+    ? templateDraft.stage === '待确认'
+      ? 1
+      : templateDraft.stage === '已确认'
+        ? 2
+        : 3
+    : 0;
+
+  const generateTemplate = (values: TemplateFormValues) => {
+    setTemplateDraft({
+      ...values,
+      stage: '待确认',
+      generatedAt: '2026-07-20 14:30',
+    });
+    setTemplateModalOpen(false);
+    templateForm.resetFields();
+    message.success('专属模板草案已生成，请完成法务确认');
+  };
+
+  const confirmTemplate = () => {
+    setTemplateDraft((draft) => (draft ? { ...draft, stage: '已确认' } : draft));
+    message.success('模板已完成法务确认');
+  };
+
+  const applyTemplate = () => {
+    if (!templateDraft || templateDraft.stage !== '已确认') return;
+    setTemplateDraft({ ...templateDraft, stage: '已应用' });
+    onTemplateApplied(task.id);
+  };
+
+  const archiveTemplate = () => {
+    if (!templateDraft || templateDraft.stage !== '已应用') return;
+    setTemplateDraft({ ...templateDraft, stage: '已归档' });
+    message.success('专属模板已归档到项目文档');
+  };
 
   if (task.tool === '尽调报告') {
     return (
@@ -419,39 +507,136 @@ function AgentResultContent({ task }: { task: AgentTask }) {
             南通产控专属协议模板
           </h3>
           <Button
+            disabled={Boolean(templateDraft && templateDraft.stage !== '已归档')}
             onClick={() => {
-              setTemplateGenerated(true);
-              message.success('已基于 23 份历史投资协议生成专属模板');
+              templateForm.setFieldsValue({
+                projectName: task.projectName,
+                name: `${task.projectName}-南通产控专属投资协议模板`,
+                reference: '当前投资协议 + 集团历史协议 + 投资管理制度',
+                clauseFocus: ['分期出资', '信息权', '回购触发', '反稀释', '交割延期'],
+              });
+              setTemplateModalOpen(true);
             }}
             type="primary"
           >
-            生成专属模板
+            {templateDraft ? '重新生成模板' : '配置并生成模板'}
           </Button>
         </div>
-        {templateGenerated ? (
-          <div className="agent-template-result">
-            <div>
-              <span>历史协议样本</span>
-              <strong>23 份</strong>
-              <small>覆盖先进制造、电子信息、新材料项目</small>
+        {templateDraft ? (
+          <div className="agent-template-workflow">
+            <Steps
+              current={templateStep}
+              items={[
+                { title: '生成草案', description: 'AI提取条款' },
+                { title: '法务确认', description: '确认差异与风险' },
+                { title: '应用项目', description: '进入合同文档' },
+                { title: '归档留痕', description: '沉淀模板资产' },
+              ]}
+              size="small"
+              status={templateDraft.stage === '已归档' ? 'finish' : 'process'}
+            />
+            <div className="agent-template-result">
+              <div>
+                <span>模板名称</span>
+                <strong>{templateDraft.name}</strong>
+                <small>关联项目：{templateDraft.projectName}</small>
+              </div>
+              <div>
+                <span>参考范围</span>
+                <strong>多源融合</strong>
+                <small>{templateDraft.reference}</small>
+              </div>
+              <div>
+                <span>当前状态</span>
+                <strong>{templateDraft.stage}</strong>
+                <small>生成时间：{templateDraft.generatedAt}</small>
+              </div>
             </div>
-            <div>
-              <span>新增专属条款</span>
-              <strong>6 条</strong>
-              <small>投后管理权、分期出资、反稀释、重大事项披露</small>
-            </div>
-            <div>
-              <span>模板状态</span>
-              <strong>已生成</strong>
-              <small>可回写项目文档并进入法务复核</small>
+            <Divider orientation="left">模板差异与专属条款</Divider>
+            <Table
+              columns={[
+                { title: '条款模块', dataIndex: 'clause', width: 120 },
+                { title: '处理方式', dataIndex: 'action', width: 110, render: (value) => <Tag color="blue">{value}</Tag> },
+                { title: '模板处理建议', dataIndex: 'advice' },
+                { title: '确认状态', dataIndex: 'status', width: 100, render: () => <Tag color={templateDraft.stage === '待确认' ? 'orange' : 'green'}>{templateDraft.stage === '待确认' ? '待确认' : '已确认'}</Tag> },
+              ]}
+              dataSource={templateDraft.clauseFocus.map((clause, index) => ({
+                key: clause,
+                clause,
+                action: index < 2 ? '重点新增' : '口径优化',
+                advice: clause === '信息权' ? '提高重大事项披露频率，并保留季度经营信息获取权。' : `${clause}纳入南通产控专属条款，统一触发条件、材料和审批责任。`,
+                status: templateDraft.stage,
+              }))}
+              pagination={false}
+              rowKey="key"
+              size="small"
+            />
+            <div className="agent-template-actions">
+              <Space wrap>
+                <Button disabled={templateDraft.stage !== '待确认'} onClick={confirmTemplate} type="primary">
+                  <CheckCircleOutlined /> 法务确认模板
+                </Button>
+                <Button disabled={templateDraft.stage !== '已确认'} onClick={applyTemplate}>
+                  应用到项目文档
+                </Button>
+                <Button disabled={templateDraft.stage !== '已应用'} onClick={archiveTemplate}>
+                  归档模板
+                </Button>
+                <Button onClick={() => navigateToProject(task.projectName)} type="link">
+                  查看项目详情
+                </Button>
+              </Space>
+              <span className="agent-template-action-hint">
+                {templateDraft.stage === '待确认'
+                  ? '请先确认条款差异，确认后才可应用到项目。'
+                  : templateDraft.stage === '已确认'
+                    ? '模板已确认，可以应用到项目合同文档。'
+                    : templateDraft.stage === '已应用'
+                      ? '模板已进入项目文档，归档后形成可复用资产。'
+                      : '模板已完成归档，可作为后续项目的历史参考。'}
+              </span>
             </div>
           </div>
         ) : (
           <p className="agent-template-empty">
-            点击生成后，系统会引用南通产控历史投资协议，生成专属条款清单和模板差异摘要。
+            先配置模板名称、关联项目、参考范围和重点条款，系统会基于当前合同、集团历史协议和投资管理制度生成模板草案；完成法务确认后，才能应用到项目文档并归档。
           </p>
         )}
       </section>
+
+      <Modal
+        destroyOnHidden
+        onCancel={() => setTemplateModalOpen(false)}
+        onOk={() => templateForm.submit()}
+        open={templateModalOpen}
+        title="配置南通产控专属协议模板"
+        width={680}
+      >
+        <Form<TemplateFormValues>
+          form={templateForm}
+          layout="vertical"
+          onFinish={generateTemplate}
+          requiredMark={false}
+        >
+          <Form.Item label="模板名称" name="name" rules={[{ required: true, message: '请输入模板名称' }]}>
+            <Input placeholder="请输入专属模板名称" />
+          </Form.Item>
+          <Form.Item label="关联项目" name="projectName" rules={[{ required: true, message: '请选择关联项目' }]}>
+            <Select options={investmentProjects.map((item) => ({ label: item.name, value: item.name }))} />
+          </Form.Item>
+          <Form.Item label="参考范围" name="reference" rules={[{ required: true, message: '请输入参考范围' }]}>
+            <Input.TextArea autoSize={{ minRows: 2, maxRows: 3 }} placeholder="例如：当前投资协议、集团历史协议、投资管理制度" />
+          </Form.Item>
+          <Form.Item label="重点条款配置" name="clauseFocus" rules={[{ required: true, message: '请选择至少一个重点条款' }]}>
+            <Checkbox.Group
+              options={['分期出资', '信息权', '回购触发', '反稀释', '交割延期', '投后管理权', '重大事项披露']}
+            />
+          </Form.Item>
+          <div className="agent-template-config-note">
+            AI 将根据当前合同的条款结构提取差异，结合集团历史协议和配置的重点条款形成模板草案；生成后仍需法务确认。
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }
