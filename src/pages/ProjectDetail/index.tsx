@@ -1,18 +1,37 @@
 import {
   AuditOutlined,
   CheckCircleOutlined,
-  CloudDownloadOutlined,
+  DownloadOutlined,
   FileProtectOutlined,
   FileSearchOutlined,
   LineChartOutlined,
+  PlusOutlined,
   ProjectOutlined,
   RobotOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import { Button, Descriptions, Empty, InputNumber, Progress, Space, Table, Tabs, Tag, Timeline, message } from 'antd';
+import {
+  Button,
+  Descriptions,
+  Drawer,
+  Empty,
+  Form,
+  Input,
+  Modal,
+  Progress,
+  Select,
+  Space,
+  Table,
+  Tabs,
+  Tag,
+  Timeline,
+  Upload,
+  message,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { UploadFile } from 'antd/es/upload/interface';
 import ReactECharts from 'echarts-for-react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
@@ -72,6 +91,71 @@ const exitItems = [
   { title: '收益测算', value: '基准情景 IRR 18.6%，悲观情景 IRR 11.2%' },
   { title: '退出复盘', value: '退出完成后自动生成复盘报告和归档任务' },
 ];
+
+type ProjectReportRecord = {
+  id: string;
+  name: string;
+  type: '投资能力画像' | '企业尽调' | '投后风控';
+  node: string;
+  status: '已完成' | '分析中' | '待补充材料';
+  updatedAt: string;
+  version: string;
+  summary: string;
+  content: string;
+  missingMaterials: string[];
+  source: string;
+};
+
+type NewReportFormValues = {
+  reportType: ProjectReportRecord['type'];
+  files?: UploadFile[];
+  documentIds?: string[];
+  description?: string;
+};
+
+function buildProjectReports(project: InvestmentProject): ProjectReportRecord[] {
+  return [
+    {
+      id: `${project.id}-ability`,
+      name: '投资能力画像报告',
+      type: '投资能力画像',
+      node: '投资复盘',
+      status: '已完成',
+      updatedAt: '2026-07-08',
+      version: 'V1.0',
+      summary: '围绕产业理解、项目储备、投后监测与退出复盘形成投资能力判断。',
+      content: `南通产控在${project.company.industries[0]}方向已形成产业理解、项目储备、投后监测和退出复盘能力，本项目可作为补链型投资样板。`,
+      missingMaterials: [],
+      source: '项目资料、客户画像、投后管理记录',
+    },
+    {
+      id: `${project.id}-due`,
+      name: '企业尽调报告',
+      type: '企业尽调',
+      node: '尽调完成',
+      status: '待补充材料',
+      updatedAt: '2026-07-08',
+      version: 'V2.0',
+      summary: '汇总企业画像、工商司法、财务、技术人才与产业链信息，输出投决前风险判断。',
+      content: `${project.company.name}业务增长较快，技术与产业链协同价值较高，建议补充客户回款材料后进入投委会。`,
+      missingMaterials: ['前三大客户合同', '最新审计报告', '核心技术权属证明', '二季度经营财务报告'],
+      source: '芯片服务项目尽调报告.pdf、可比公司估值测算.xlsx',
+    },
+    {
+      id: `${project.id}-post-risk`,
+      name: '投后风控决策报告',
+      type: '投后风控',
+      node: '投后跟踪',
+      status: '分析中',
+      updatedAt: '2026-07-07',
+      version: 'V1.0',
+      summary: '基于经营、财务、舆情和司法指标变化，形成投后风险与管理动作建议。',
+      content: `当前项目风险等级为${project.risk}，建议持续跟踪经营回款、核心客户集中度及合同履约情况，并按季度更新风险结论。`,
+      missingMaterials: [],
+      source: '经营报告、财务报告、风险监测数据',
+    },
+  ];
+}
 
 export default function ProjectDetailPage() {
   const navigate = useNavigate();
@@ -134,7 +218,7 @@ function StageProgress({ label, title, percent }: { label: string; title: string
     <article>
       <span>{label}</span>
       <strong>{title}</strong>
-      <Progress percent={Math.min(percent, 100)} size="small" />
+      <Progress percent={Math.min(percent, 100)} size="small" showInfo />
     </article>
   );
 }
@@ -430,101 +514,267 @@ function AgentTab({ outputs }: { outputs: AgentOutput[] }) {
 }
 
 function ReportTab({ project }: { project: InvestmentProject }) {
-  const [reportType, setReportType] = useState<'ability' | 'due'>('ability');
-  const [generated, setGenerated] = useState(false);
-  const [revenue, setRevenue] = useState(8400);
-  const [version, setVersion] = useState(1);
-  const title = reportType === 'ability' ? '投资能力画像报告' : '企业尽调报告';
-  const conclusion =
-    reportType === 'ability'
-      ? `南通产控在${project.company.industries[0]}方向已形成产业理解、项目储备、投后监测和退出复盘能力，本项目可作为补链型投资样板。`
-      : `${project.company.name}业务增长较快，最近季度收入约 ${revenue.toLocaleString()} 万元，技术与产业链协同价值较高，建议补充客户回款材料后进入投委会。`;
+  const [reports, setReports] = useState(() => buildProjectReports(project));
+  const [activeReport, setActiveReport] = useState<ProjectReportRecord | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [newReportOpen, setNewReportOpen] = useState(false);
+  const [form] = Form.useForm<NewReportFormValues>();
+
+  const createReport = (values: NewReportFormValues) => {
+    const uploadedNames = (values.files ?? []).map((file) => file.name);
+    const linkedNames = (values.documentIds ?? [])
+      .map((id) => project.documents.find((document) => document.id === id)?.name)
+      .filter((name): name is string => Boolean(name));
+    const sourceNames = [...uploadedNames, ...linkedNames];
+
+    if (!sourceNames.length) {
+      message.warning('请上传至少一个文档，或关联至少一个项目文档');
+      return;
+    }
+
+    const source = [
+      uploadedNames.length ? `上传：${uploadedNames.join('、')}` : '',
+      linkedNames.length ? `关联：${linkedNames.join('、')}` : '',
+    ]
+      .filter(Boolean)
+      .join('；');
+
+    const report: ProjectReportRecord = {
+      id: `${project.id}-report-${Date.now()}`,
+      name: `${values.reportType}报告`,
+      type: values.reportType,
+      node: 'AI分析任务',
+      status: '分析中',
+      updatedAt: '刚刚',
+      version: 'V1.0',
+      summary: values.description || 'AI正在解析资料并整理报告结论。',
+      content: 'AI正在解析资料，系统会从完整性、关键事实和风险点三个层面进行分析。',
+      missingMaterials: [],
+      source,
+    };
+
+    setReports((current) => [report, ...current]);
+    setNewReportOpen(false);
+    form.resetFields();
+    message.success('报告已提交，AI分析已开始');
+
+    window.setTimeout(() => {
+      const needsMaterials = report.type === '企业尽调' && sourceNames.length < 2;
+      const completedReport: ProjectReportRecord = {
+        ...report,
+        node: needsMaterials ? '材料补充' : 'AI分析完成',
+        status: needsMaterials ? '待补充材料' : '已完成',
+        updatedAt: '2026-07-22 14:32',
+        content: needsMaterials
+          ? `${project.company.name}的基础资料已完成初步解析，但关键财务和客户材料不足，暂不能形成完整尽调结论。`
+          : `${report.type}已完成分析，系统已结合项目资料、企业画像和风险信息形成可供业务人员复核的报告结论。`,
+        missingMaterials: needsMaterials ? ['最新审计报告', '前三大客户合同'] : [],
+      };
+      setReports((current) => current.map((item) => (item.id === report.id ? completedReport : item)));
+      setActiveReport((current) => (current?.id === report.id ? completedReport : current));
+      message.info(needsMaterials ? 'AI分析完成，报告待补充材料' : 'AI分析完成，报告已生成');
+    }, 1800);
+  };
+
+  const regenerate = (report: ProjectReportRecord) => {
+    setGeneratingId(report.id);
+    const processingReport = {
+      ...report,
+      node: 'AI分析任务',
+      status: '分析中' as const,
+      updatedAt: '刚刚',
+    };
+    setReports((current) => current.map((item) => (item.id === report.id ? processingReport : item)));
+    setActiveReport((current) => (current?.id === report.id ? processingReport : current));
+    window.setTimeout(() => {
+      const needsMaterials = report.missingMaterials.length > 0;
+      const updatedReport: ProjectReportRecord = {
+        ...processingReport,
+        node: needsMaterials ? '材料补充' : 'AI分析完成',
+        status: needsMaterials ? '待补充材料' : '已完成',
+        version: `V${Number.parseFloat(report.version.replace('V', '')) + 1}.0`,
+        updatedAt: '2026-07-22 14:32',
+      };
+      setReports((current) =>
+        current.map((item) =>
+          item.id === report.id ? updatedReport : item,
+        ),
+      );
+      setActiveReport((current) => (current?.id === report.id ? updatedReport : current));
+      setGeneratingId(null);
+      message.success(`${report.name}已重新生成`);
+    }, 500);
+  };
+
+  const exportReport = (report: ProjectReportRecord) => {
+    const missingMaterials = report.missingMaterials.length
+      ? report.missingMaterials.join('、')
+      : '暂无';
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${report.name}</title></head><body><h1>${report.name}</h1><p>项目：${project.name}</p><p>企业：${project.company.name}</p><p>版本：${report.version}</p><p>生成时间：${report.updatedAt}</p><h2>AI核心结论</h2><p>${report.content}</p><h2>待补资料</h2><p>${missingMaterials}</p></body></html>`;
+    const blob = new Blob([html], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${project.company.name}-${report.name}.doc`;
+    link.click();
+    URL.revokeObjectURL(url);
+    message.success('报告已导出');
+  };
+
+  const columns: ColumnsType<ProjectReportRecord> = [
+    {
+      title: '报告名称',
+      dataIndex: 'name',
+      width: 230,
+      render: (name: string, report) => (
+        <div className="management-company-cell">
+          <strong>{name}</strong>
+          <span>{report.summary}</span>
+        </div>
+      ),
+    },
+    {
+      title: '报告类型',
+      dataIndex: 'type',
+      width: 130,
+      render: (type: ProjectReportRecord['type']) => <Tag color="blue">{type}</Tag>,
+    },
+    { title: '关联节点', dataIndex: 'node', width: 120 },
+    { title: '版本', dataIndex: 'version', width: 90 },
+    {
+      title: '生成状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (status: ProjectReportRecord['status']) => (
+        <Tag color={status === '已完成' ? 'green' : status === '分析中' ? 'blue' : 'orange'}>{status}</Tag>
+      ),
+    },
+    { title: '更新时间', dataIndex: 'updatedAt', width: 120 },
+    {
+      title: '操作',
+      width: 180,
+      fixed: 'right',
+      render: (_value, report) => (
+        <Space className="management-row-actions">
+          <Button onClick={() => setActiveReport(report)} size="small" type="link">
+            查看详情
+          </Button>
+          <Button
+            loading={generatingId === report.id}
+            onClick={() => regenerate(report)}
+            size="small"
+            type="link"
+          >
+            重新生成
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <section className="project-detail-panel">
-      <div className="report-generator">
-        <aside>
-          <button
-            className={reportType === 'ability' ? 'is-active' : ''}
-            onClick={() => {
-              setReportType('ability');
-              setGenerated(false);
-            }}
-            type="button"
-          >
-            投资能力画像报告
-          </button>
-          <button
-            className={reportType === 'due' ? 'is-active' : ''}
-            onClick={() => {
-              setReportType('due');
-              setGenerated(false);
-            }}
-            type="button"
-          >
-            企业尽调报告
-          </button>
-        </aside>
-        <section className="report-generator__workspace">
-          <div className="management-section-title">
-            <h2>
-              <FileProtectOutlined />
-              {title}
-            </h2>
-            <Space>
-              <Button
-                icon={<RobotOutlined />}
-                onClick={() => {
-                  setGenerated(true);
-                  message.success(`${title}已生成`);
-                }}
-                type="primary"
-              >
-                生成报告
-              </Button>
-              <Button
-                disabled={!generated}
-                icon={<CloudDownloadOutlined />}
-                onClick={() => message.success(`${title}已导出 Word`)}
-              >
-                导出 Word
-              </Button>
-            </Space>
-          </div>
-          {generated ? (
-            <div className="report-preview">
-              <div className="report-refresh-row">
-                <span>补充最新季度收入：</span>
-                <InputNumber min={0} onChange={(value) => setRevenue(Number(value ?? revenue))} value={revenue} />
-                <Button
-                  onClick={() => {
-                    setVersion((value) => value + 1);
-                    message.success('报告已基于补充数据重新生成');
-                  }}
-                >
-                  重新生成
-                </Button>
-                <Tag color="blue">版本 V{version}</Tag>
-              </div>
-              <Descriptions bordered column={1}>
-                <Descriptions.Item label="报告对象">{project.company.name}</Descriptions.Item>
-                <Descriptions.Item label="报告大纲">
-                  产业判断、企业画像、投前尽调、合同审核、投后监测、估值建议、风险与管理动作。
-                </Descriptions.Item>
-                <Descriptions.Item label="AI核心结论">{conclusion}</Descriptions.Item>
-                <Descriptions.Item label="待补资料">
-                  前三大客户合同、最新审计报告、核心技术权属证明、二季度经营财务报告。
-                </Descriptions.Item>
-              </Descriptions>
-            </div>
-          ) : (
-            <div className="report-empty">
-              <RobotOutlined />
-              <p>选择报告类型后点击生成，系统会汇总项目、企业画像、智能体输出、风险和文档数据形成报告预览。</p>
-            </div>
-          )}
-        </section>
+      <div className="management-section-title">
+        <h2>
+          <FileProtectOutlined />
+          报告列表
+        </h2>
+        <Button icon={<PlusOutlined />} onClick={() => setNewReportOpen(true)} type="primary">
+          新增报告
+        </Button>
       </div>
+      <Table
+        columns={columns}
+        dataSource={reports}
+        pagination={false}
+        rowKey="id"
+        scroll={{ x: 1000 }}
+      />
+      <Drawer
+        extra={
+          activeReport ? (
+            <Button icon={<DownloadOutlined />} onClick={() => exportReport(activeReport)} type="primary">
+              导出报告
+            </Button>
+          ) : null
+        }
+        onClose={() => setActiveReport(null)}
+        open={Boolean(activeReport)}
+        title={activeReport?.name}
+        width={620}
+      >
+        {activeReport ? (
+          <>
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="报告对象">{project.company.name}</Descriptions.Item>
+              <Descriptions.Item label="报告类型">{activeReport.type}</Descriptions.Item>
+              <Descriptions.Item label="关联节点">{activeReport.node}</Descriptions.Item>
+              <Descriptions.Item label="资料来源">{activeReport.source}</Descriptions.Item>
+              <Descriptions.Item label="版本">{activeReport.version}</Descriptions.Item>
+              <Descriptions.Item label="生成状态">
+                <Tag color={activeReport.status === '已完成' ? 'green' : activeReport.status === '分析中' ? 'blue' : 'orange'}>
+                  {activeReport.status}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="更新时间">{activeReport.updatedAt}</Descriptions.Item>
+            </Descriptions>
+            <div className="report-detail-copy">
+              <h3>AI核心结论</h3>
+              <p>{activeReport.content}</p>
+              <h3>待补资料</h3>
+              <p>{activeReport.missingMaterials.length ? activeReport.missingMaterials.join('、') : '暂无'}</p>
+            </div>
+          </>
+        ) : null}
+      </Drawer>
+      <Modal
+        destroyOnHidden
+        onCancel={() => {
+          setNewReportOpen(false);
+          form.resetFields();
+        }}
+        onOk={() => form.submit()}
+        okText="AI分析"
+        open={newReportOpen}
+        title="新增报告"
+      >
+        <Form<NewReportFormValues>
+          form={form}
+          initialValues={{ reportType: '企业尽调' }}
+          layout="vertical"
+          onFinish={createReport}
+          requiredMark={false}
+        >
+          <Form.Item label="报告类型" name="reportType" rules={[{ required: true, message: '请选择报告类型' }]}>
+            <Select
+              options={[
+                { label: '投资能力画像报告', value: '投资能力画像' },
+                { label: '企业尽调报告', value: '企业尽调' },
+                { label: '投后风控决策报告', value: '投后风控' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item
+            getValueFromEvent={(event: { fileList: UploadFile[] }) => event.fileList}
+            label="上传新文档（可多选）"
+            name="files"
+          >
+            <Upload beforeUpload={() => false} multiple showUploadList>
+              <Button>选择文件</Button>
+            </Upload>
+          </Form.Item>
+          <Form.Item label="关联项目文档（可多选）" name="documentIds">
+            <Select
+              mode="multiple"
+              options={project.documents.map((document) => ({ label: document.name, value: document.id }))}
+              placeholder="请选择项目文档"
+            />
+          </Form.Item>
+          <Form.Item label="分析说明" name="description">
+            <Input.TextArea placeholder="补充本次报告的分析目标或重点关注事项" rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </section>
   );
 }

@@ -2,6 +2,8 @@ import {
   AuditOutlined,
   CheckCircleOutlined,
   CloudUploadOutlined,
+  DownloadOutlined,
+  EyeOutlined,
   FileProtectOutlined,
   FileSearchOutlined,
   ProfileOutlined,
@@ -59,6 +61,13 @@ type ContractTemplateDraft = TemplateFormValues & {
 
 const normalizeUploadFileList = (event?: { fileList?: UploadFile[] } | UploadFile[]) =>
   Array.isArray(event) ? event : event?.fileList ?? [];
+
+const escapeHtml = (value: string) =>
+  value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ?? character,
+  );
 
 const agentMenus = [
   {
@@ -388,6 +397,7 @@ function AgentResultContent({
 }) {
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [templateDraft, setTemplateDraft] = useState<ContractTemplateDraft | null>(null);
+  const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false);
   const [templateForm] = Form.useForm<TemplateFormValues>();
 
   const templateStep = templateDraft
@@ -424,6 +434,22 @@ function AgentResultContent({
     if (!templateDraft || templateDraft.stage !== '已应用') return;
     setTemplateDraft({ ...templateDraft, stage: '已归档' });
     message.success('专属模板已归档到项目文档');
+  };
+
+  const exportTemplate = () => {
+    if (!templateDraft) return;
+    const clauses = templateDraft.clauseFocus
+      .map((clause, index) => `<li><strong>${index + 1}. ${escapeHtml(clause)}</strong>：纳入南通产控专属条款，统一触发条件、材料和审批责任。</li>`)
+      .join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(templateDraft.name)}</title></head><body><h1>${escapeHtml(templateDraft.name)}</h1><p>关联项目：${escapeHtml(templateDraft.projectName)}</p><p>参考范围：${escapeHtml(templateDraft.reference)}</p><p>模板状态：${escapeHtml(templateDraft.stage)}</p><p>生成时间：${escapeHtml(templateDraft.generatedAt)}</p><h2>专属条款</h2><ol>${clauses}</ol></body></html>`;
+    const blob = new Blob([html], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${templateDraft.name}.doc`;
+    link.click();
+    URL.revokeObjectURL(url);
+    message.success('专属模板已导出');
   };
 
   if (task.tool === '尽调报告') {
@@ -573,6 +599,12 @@ function AgentResultContent({
             />
             <div className="agent-template-actions">
               <Space wrap>
+                <Button icon={<EyeOutlined />} onClick={() => setTemplatePreviewOpen(true)}>
+                  预览模板
+                </Button>
+                <Button icon={<DownloadOutlined />} onClick={exportTemplate}>
+                  导出模板
+                </Button>
                 <Button disabled={templateDraft.stage !== '待确认'} onClick={confirmTemplate} type="primary">
                   <CheckCircleOutlined /> 法务确认模板
                 </Button>
@@ -636,6 +668,43 @@ function AgentResultContent({
             AI 将根据当前合同的条款结构提取差异，结合集团历史协议和配置的重点条款形成模板草案；生成后仍需法务确认。
           </div>
         </Form>
+      </Modal>
+      <Modal
+        footer={
+          <Space>
+            <Button onClick={() => setTemplatePreviewOpen(false)}>关闭</Button>
+            <Button icon={<DownloadOutlined />} onClick={exportTemplate} type="primary">
+              导出模板
+            </Button>
+          </Space>
+        }
+        onCancel={() => setTemplatePreviewOpen(false)}
+        open={templatePreviewOpen}
+        title="模板预览"
+        width={760}
+      >
+        {templateDraft ? (
+          <div className="agent-template-preview">
+            <h1>{templateDraft.name}</h1>
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="关联项目">{templateDraft.projectName}</Descriptions.Item>
+              <Descriptions.Item label="参考范围">{templateDraft.reference}</Descriptions.Item>
+              <Descriptions.Item label="模板状态">
+                <Tag color={templateDraft.stage === '待确认' ? 'orange' : 'green'}>{templateDraft.stage}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="生成时间">{templateDraft.generatedAt}</Descriptions.Item>
+            </Descriptions>
+            <h2>专属条款</h2>
+            <ol>
+              {templateDraft.clauseFocus.map((clause) => (
+                <li key={clause}>
+                  <strong>{clause}</strong>
+                  <span>纳入南通产控专属条款，统一触发条件、材料和审批责任。</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
       </Modal>
     </div>
   );

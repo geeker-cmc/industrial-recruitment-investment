@@ -66,7 +66,7 @@ export default function AppHeader() {
     },
     {
       to: '/document-management',
-      label: 'skill合集',
+      label: '智能体',
       icon: <FileProtectOutlined />,
       active: location.pathname.startsWith('/document-management'),
     },

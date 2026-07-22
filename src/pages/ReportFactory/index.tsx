@@ -26,6 +26,8 @@ import {
   Form,
   Input,
   Modal,
+  Col,
+  Row,
   Select,
   Space,
   Switch,
@@ -119,7 +121,7 @@ export default function ReportFactoryPage() {
               <RobotOutlined />
             </div>
             <div>
-              <strong>skill合集</strong>
+              <strong>智能体</strong>
               <span>智能体工作台</span>
             </div>
           </div>
@@ -488,7 +490,7 @@ function MessageBubble({ message: messageItem }: { message: ReportFactoryMessage
       <div className="report-factory-message__avatar">{isUser ? <MessageOutlined /> : <RobotOutlined />}</div>
       <div className="report-factory-message__body">
         <div className="report-factory-message__meta">
-          <strong>{isUser ? '我' : 'skill合集智能体'}</strong>
+          <strong>{isUser ? '我' : '智能体'}</strong>
           <span>{formatConversationTime(messageItem.createdAt)}</span>
         </div>
         <div className="report-factory-message__content">
@@ -642,12 +644,6 @@ function SkillManagement({ onUseSkill }: { onUseSkill: (skillId: string) => void
           />
         </div>
 
-        <SkillDetail
-          onEdit={selectedSkill && !selectedSkill.builtin ? openEditSkill : undefined}
-          onToggle={toggleSkill}
-          onUse={onUseSkill}
-          skill={selectedSkill}
-        />
       </div>
 
       <Modal
@@ -715,129 +711,71 @@ function SkillGroup({
       {!skills.length ? (
         <Empty description={emptyText} image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
-        <div className="report-factory-skill-list">
+        <Row className="report-factory-skill-list" gutter={[12, 12]}>
           {skills.map((skill) => (
-            <article
-              className={`report-factory-skill-card ${selectedSkillId === skill.id ? 'is-selected' : ''}`}
-              key={skill.id}
-              onClick={() => onSelect(skill.id)}
-            >
-              <div className="report-factory-skill-card__icon" style={{ color: skill.accent }}>
-                <ToolOutlined />
-              </div>
-              <div className="report-factory-skill-card__content">
-                <div className="report-factory-skill-card__title">
-                  <strong>{skill.name}</strong>
-                  <Switch
-                    checked={skill.enabled}
-                    onChange={() => onToggle(skill.id)}
-                    onClick={(_, event) => event.stopPropagation()}
-                    size="small"
-                  />
+            <Col key={skill.id} lg={8} sm={12} xs={24}>
+              <article
+                className={`report-factory-skill-card ${selectedSkillId === skill.id ? 'is-selected' : ''}`}
+                onClick={() => onSelect(skill.id)}
+              >
+                <div className="report-factory-skill-card__icon" style={{ color: skill.accent }}>
+                  <ToolOutlined />
                 </div>
-                <p>{skill.description}</p>
-                <div className="report-factory-skill-card__footer">
-                  <Button
-                    disabled={!skill.enabled}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onUse(skill.id);
-                    }}
-                    size="small"
-                    type="link"
-                  >
-                    使用技能
-                  </Button>
-                  {!skill.builtin && (
-                    <Space size={0}>
-                      <Button
-                        aria-label={`编辑${skill.name}`}
-                        icon={<EditOutlined />}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onEdit?.(skill);
-                        }}
-                        size="small"
-                        type="text"
-                      />
-                      <Button
-                        aria-label={`删除${skill.name}`}
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onDelete?.(skill);
-                        }}
-                        size="small"
-                        type="text"
-                      />
-                    </Space>
-                  )}
+                <div className="report-factory-skill-card__content">
+                  <div className="report-factory-skill-card__title">
+                    <strong>{skill.name}</strong>
+                    <Switch
+                      checked={skill.enabled}
+                      onChange={() => onToggle(skill.id)}
+                      onClick={(_, event) => event.stopPropagation()}
+                      size="small"
+                    />
+                  </div>
+                  <p>{skill.description}</p>
+                  <div className="report-factory-skill-card__footer">
+                    <Button
+                      disabled={!skill.enabled}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onUse(skill.id);
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      使用技能
+                    </Button>
+                    {!skill.builtin && (
+                      <Space size={0}>
+                        <Button
+                          aria-label={`编辑${skill.name}`}
+                          icon={<EditOutlined />}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onEdit?.(skill);
+                          }}
+                          size="small"
+                          type="text"
+                        />
+                        <Button
+                          aria-label={`删除${skill.name}`}
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDelete?.(skill);
+                          }}
+                          size="small"
+                          type="text"
+                        />
+                      </Space>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </article>
+              </article>
+            </Col>
           ))}
-        </div>
+        </Row>
       )}
-    </section>
-  );
-}
-
-function SkillDetail({
-  skill,
-  onToggle,
-  onUse,
-  onEdit,
-}: {
-  skill: ReportFactorySkill | null;
-  onToggle: (skillId: string) => void;
-  onUse: (skillId: string) => void;
-  onEdit?: (skill: ReportFactorySkill) => void;
-}) {
-  if (!skill) {
-    return <aside className="report-factory-skill-detail"><Empty description="选择技能查看详情" /></aside>;
-  }
-
-  return (
-    <aside className="report-factory-skill-detail">
-      <div className="report-factory-skill-detail__heading">
-        <div className="report-factory-skill-card__icon" style={{ color: skill.accent }}>
-          <ToolOutlined />
-        </div>
-        <div>
-          <span className="report-factory-eyebrow">{skill.builtin ? '系统技能' : '自定义技能'}</span>
-          <h2>{skill.name}</h2>
-        </div>
-      </div>
-      <p className="report-factory-skill-detail__description">{skill.description}</p>
-      <div className="report-factory-skill-detail__actions">
-        <Button disabled={!skill.enabled} icon={<MessageOutlined />} onClick={() => onUse(skill.id)} type="primary">
-          使用技能
-        </Button>
-        <Switch checked={skill.enabled} onChange={() => onToggle(skill.id)} checkedChildren="启用" unCheckedChildren="停用" />
-        {onEdit && <Button icon={<EditOutlined />} onClick={() => onEdit(skill)}>编辑</Button>}
-      </div>
-      <SkillDetailSection label="技能提示词">
-        <p className="report-factory-skill-detail__prompt">{skill.prompt}</p>
-      </SkillDetailSection>
-      <SkillDetailSection label="支持输入">
-        <div className="report-factory-chip-list">{skill.inputTypes.map((item) => <Tag key={item}>{item}</Tag>)}</div>
-      </SkillDetailSection>
-      <SkillDetailSection label="输出格式">
-        <div className="report-factory-chip-list">{skill.outputFormats.map((item) => <Tag color="blue" key={item}>{item}</Tag>)}</div>
-      </SkillDetailSection>
-      <SkillDetailSection label="可用上下文">
-        <div className="report-factory-chip-list">{skill.contextTypes.map((item) => <Tag color="cyan" key={item}>{item}</Tag>)}</div>
-      </SkillDetailSection>
-    </aside>
-  );
-}
-
-function SkillDetailSection({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <section className="report-factory-skill-detail__section">
-      <h3>{label}</h3>
-      {children}
     </section>
   );
 }

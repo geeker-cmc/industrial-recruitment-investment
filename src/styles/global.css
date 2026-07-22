@@ -2024,7 +2024,7 @@ select {
   border-radius: 8px;
 }
 
-.project-detail-progress span {
+.project-detail-progress article > span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2037,15 +2037,15 @@ select {
   border-radius: 50%;
 }
 
-.project-detail-progress article:nth-child(1) span {
+.project-detail-progress article:nth-child(1) > span {
   background: #faad14;
 }
 
-.project-detail-progress article:nth-child(3) span {
+.project-detail-progress article:nth-child(3) > span {
   background: #13c2c2;
 }
 
-.project-detail-progress article:nth-child(4) span {
+.project-detail-progress article:nth-child(4) > span {
   background: #9254de;
 }
 
@@ -2300,6 +2300,23 @@ select {
   max-width: 520px;
   margin: 0;
   line-height: 1.7;
+}
+
+.report-detail-copy {
+  padding-top: 20px;
+}
+
+.report-detail-copy h3 {
+  margin: 0 0 8px;
+  color: #1f2b43;
+  font-size: 16px;
+}
+
+.report-detail-copy p {
+  margin: 0 0 20px;
+  color: #53647f;
+  font-weight: 650;
+  line-height: 1.8;
 }
 
 .project-agent-output strong {
@@ -2569,6 +2586,39 @@ select {
   margin: 10px 0 8px;
   color: #1677ff;
   font-size: 24px;
+}
+
+.agent-template-preview h1 {
+  margin: 0 0 18px;
+  color: #1f2b43;
+  font-size: 24px;
+}
+
+.agent-template-preview h2 {
+  margin: 22px 0 10px;
+  color: #1f2b43;
+  font-size: 17px;
+}
+
+.agent-template-preview ol {
+  display: grid;
+  gap: 10px;
+  padding-left: 24px;
+  margin: 0;
+  color: #53647f;
+  line-height: 1.7;
+}
+
+.agent-template-preview li {
+  padding: 10px 12px;
+  background: #f8fbff;
+  border: 1px solid #e2eefc;
+  border-radius: 6px;
+}
+
+.agent-template-preview li strong {
+  margin-right: 8px;
+  color: #1f2b43;
 }
 
 .agent-template-empty {
@@ -4961,8 +5011,7 @@ select {
 
 .report-factory-skills__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
-  gap: 18px;
+  grid-template-columns: 1fr;
   padding: 18px 26px 26px;
 }
 
@@ -4994,13 +5043,16 @@ select {
 }
 
 .report-factory-skill-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  width: 100%;
+}
+
+.report-factory-skill-list > .ant-col {
+  display: flex;
 }
 
 .report-factory-skill-card {
   display: flex;
+  width: 100%;
   min-width: 0;
   gap: 11px;
   padding: 12px;
@@ -5064,72 +5116,6 @@ select {
   font-weight: 800;
 }
 
-.report-factory-skill-detail {
-  align-self: start;
-  padding: 17px;
-  background: #fbfcfe;
-  border: 1px solid #e5edf7;
-  border-radius: 8px;
-}
-
-.report-factory-skill-detail__heading {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.report-factory-skill-detail__heading .report-factory-eyebrow {
-  margin-bottom: 2px;
-}
-
-.report-factory-skill-detail h2 {
-  margin: 0;
-  color: #26344d;
-  font-size: 18px;
-}
-
-.report-factory-skill-detail__description {
-  margin: 14px 0;
-  color: #64728a;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.7;
-}
-
-.report-factory-skill-detail__actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #e6edf6;
-}
-
-.report-factory-skill-detail__section {
-  padding-top: 14px;
-}
-
-.report-factory-skill-detail__section h3 {
-  margin: 0 0 8px;
-  color: #53647f;
-  font-size: 12px;
-}
-
-.report-factory-skill-detail__prompt {
-  padding: 9px 10px;
-  margin: 0;
-  color: #687791;
-  font-size: 12px;
-  line-height: 1.6;
-  background: #ffffff;
-  border: 1px solid #e5edf7;
-  border-radius: 6px;
-}
-
-.report-factory-chip-list .ant-tag {
-  margin: 0;
-}
-
 .report-factory-skill-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5145,13 +5131,6 @@ select {
     grid-template-columns: 220px minmax(0, 1fr);
   }
 
-  .report-factory-skills__layout {
-    grid-template-columns: 1fr;
-  }
-
-  .report-factory-skill-detail {
-    order: -1;
-  }
 }
 
 @media (max-width: 760px) {
@@ -5198,7 +5177,6 @@ select {
     padding-left: 18px;
   }
 
-  .report-factory-skill-list,
   .report-factory-skill-form-grid {
     grid-template-columns: 1fr;
   }

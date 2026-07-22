@@ -21,7 +21,6 @@ import {
 } from '@ant-design/icons';
 import {
   Button,
-  Checkbox,
   Descriptions,
   Drawer,
   Input,
@@ -1018,10 +1017,6 @@ function IndustryStrengthAnalysis({
           <BranchesOutlined />
           产业链强补延图谱
         </h2>
-        <Checkbox.Group
-          defaultValue={['补链建议环节', '强链建议环节']}
-          options={['补链建议环节', '强链建议环节']}
-        />
       </div>
       <div className="strength-legend">
         <span className="legend-dot strong" /> 强节点

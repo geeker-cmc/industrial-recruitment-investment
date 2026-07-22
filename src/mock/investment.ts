@@ -109,6 +109,7 @@ export type RiskRecord = {
   source: string;
   owner: string;
   status: '待处置' | '处置中' | '已闭环';
+  operation: 'assign' | 'handle';
   action: string;
 };
 
@@ -638,6 +639,7 @@ export const riskRecords: RiskRecord[] = [
     source: '退出测算模型',
     owner: '周宁',
     status: '处置中',
+    operation: 'handle',
     action: '复核回购触发条款并补充敏感性测算',
   },
   {
@@ -649,6 +651,7 @@ export const riskRecords: RiskRecord[] = [
     source: 'AI尽调报告',
     owner: '王敏',
     status: '待处置',
+    operation: 'assign',
     action: '补充客户合同、回款和替代客户清单',
   },
   {
@@ -660,6 +663,7 @@ export const riskRecords: RiskRecord[] = [
     source: '合同审核智能体',
     owner: '赵然',
     status: '待处置',
+    operation: 'assign',
     action: '法务复核付款条件与违约责任',
   },
   {
@@ -671,6 +675,7 @@ export const riskRecords: RiskRecord[] = [
     source: '季度经营报告',
     owner: '李华',
     status: '已闭环',
+    operation: 'handle',
     action: '已确认订单回款符合投后计划',
   },
 ];

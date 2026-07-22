@@ -74,6 +74,17 @@ type DocumentFormValues = {
   owner: string;
 };
 
+type RiskAssignFormValues = {
+  owner: string;
+  remark: string;
+};
+
+type RiskProcessFormValues = {
+  plan?: string;
+  conclusion?: string;
+  remark: string;
+};
+
 const modules: Record<ManagementKey, ManagementModule> = {
   project: {
     key: 'project',
@@ -158,9 +169,12 @@ export default function BusinessManagementPage({
   const [documents, setDocuments] = useState<DocumentRecord[]>(documentRecords);
   const [activeModal, setActiveModal] = useState<ModalKey>(null);
   const [previewDocument, setPreviewDocument] = useState<DocumentRecord | null>(null);
+  const [activeRiskAction, setActiveRiskAction] = useState<{ risk: RiskRecord; operation: RiskRecord['operation'] } | null>(null);
   const [projectForm] = Form.useForm<ProjectFormValues>();
   const [customerForm] = Form.useForm<CustomerFormValues>();
   const [documentForm] = Form.useForm<DocumentFormValues>();
+  const [riskAssignForm] = Form.useForm<RiskAssignFormValues>();
+  const [riskProcessForm] = Form.useForm<RiskProcessFormValues>();
 
   useEffect(() => {
     if (moduleKey !== 'project' || !location.search) return;
@@ -181,19 +195,65 @@ export default function BusinessManagementPage({
   }, [location.search, moduleKey, projectForm]);
 
   const openPrimaryAction = () => {
-    if (activeModule.key === 'risk') {
-      setRisks((rows) =>
-        rows.map((row) =>
-          row.status === '待处置'
-            ? { ...row, status: '处置中', action: '已批量分派，等待责任人反馈处置结论' }
-            : row,
-        ),
-      );
-      message.success('已将待处置风险批量分派');
+    setActiveModal(activeModule.key);
+  };
+
+  const openRiskAction = (risk: RiskRecord) => {
+    setActiveRiskAction({ risk, operation: risk.operation });
+    if (risk.operation === 'assign') {
+      riskAssignForm.resetFields();
+      riskAssignForm.setFieldsValue({ owner: risk.owner === '未分派' ? undefined : risk.owner });
       return;
     }
+    riskProcessForm.resetFields();
+  };
 
-    setActiveModal(activeModule.key);
+  const closeRiskAction = () => {
+    setActiveRiskAction(null);
+    riskAssignForm.resetFields();
+    riskProcessForm.resetFields();
+  };
+
+  const assignRisk = (values: RiskAssignFormValues) => {
+    if (!activeRiskAction) return;
+    const { risk } = activeRiskAction;
+    setRisks((rows) =>
+      rows.map((row) =>
+        row.id === risk.id
+          ? {
+              ...row,
+              owner: values.owner,
+              status: '处置中',
+              operation: 'handle',
+              action: `已指派给${values.owner}，等待提交处置结论。备注：${values.remark}`,
+            }
+          : row,
+      ),
+    );
+    closeRiskAction();
+    message.success('风险已指派，状态已变更为处置中');
+  };
+
+  const processRisk = (values: RiskProcessFormValues) => {
+    if (!activeRiskAction) return;
+    const { risk } = activeRiskAction;
+    const isInitialSubmission = risk.status === '待处置';
+    const detail = isInitialSubmission ? values.plan : values.conclusion;
+    if (!detail) return;
+    setRisks((rows) =>
+      rows.map((row) =>
+        row.id === risk.id
+          ? {
+              ...row,
+              status: isInitialSubmission ? '处置中' : '已闭环',
+              operation: 'handle',
+              action: `${isInitialSubmission ? '已提交处置方案' : '已完成风险处理'}：${detail}。备注：${values.remark}`,
+            }
+          : row,
+      ),
+    );
+    closeRiskAction();
+    message.success(isInitialSubmission ? '处置方案已提交，状态已变更为处置中' : '风险处理已提交，状态已变更为已闭环');
   };
 
   const advanceProject = (projectId: string) => {
@@ -309,26 +369,7 @@ export default function BusinessManagementPage({
           documents={documents}
           module={activeModule}
           onAdvanceProject={advanceProject}
-          onAssignRisk={(riskId) => {
-            setRisks((rows) =>
-              rows.map((row) =>
-                row.id === riskId
-                  ? { ...row, status: '处置中', action: '已分派责任人，等待处置反馈' }
-                  : row,
-              ),
-            );
-            message.success('风险已分派');
-          }}
-          onCloseRisk={(riskId) => {
-            setRisks((rows) =>
-              rows.map((row) =>
-                row.id === riskId
-                  ? { ...row, status: '已闭环', action: '处置完成，结论已回写项目档案' }
-                  : row,
-              ),
-            );
-            message.success('风险已闭环');
-          }}
+          onRiskAction={openRiskAction}
           onConnectCustomer={(customerId) => {
             const related = relatedProject(customerId, projects);
             setCustomers((rows) =>
@@ -495,6 +536,62 @@ export default function BusinessManagementPage({
           </Descriptions>
         )}
       </Drawer>
+
+      <Modal
+        destroyOnHidden
+        onCancel={closeRiskAction}
+        onOk={() => (activeRiskAction?.operation === 'assign' ? riskAssignForm.submit() : riskProcessForm.submit())}
+        open={Boolean(activeRiskAction)}
+        title={activeRiskAction?.operation === 'assign' ? '指派风险责任人' : '处理风险事项'}
+      >
+        {activeRiskAction?.operation === 'assign' ? (
+          <Form<RiskAssignFormValues>
+            form={riskAssignForm}
+            layout="vertical"
+            onFinish={assignRisk}
+            requiredMark={false}
+          >
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="风险事项">{activeRiskAction.risk.object}</Descriptions.Item>
+              <Descriptions.Item label="关联项目">{activeRiskAction.risk.projectName}</Descriptions.Item>
+            </Descriptions>
+            <Form.Item label="指定负责人" name="owner" rules={[{ required: true, message: '请选择负责人' }]}>
+              <Select
+                placeholder="请选择风险负责人"
+                options={['张小令', '王敏', '赵然', '周宁', '李华'].map((owner) => ({ label: owner, value: owner }))}
+              />
+            </Form.Item>
+            <Form.Item label="指派备注" name="remark" rules={[{ required: true, message: '请填写指派备注' }]}>
+              <Input.TextArea autoSize={{ minRows: 3, maxRows: 5 }} placeholder="说明指派原因、处理时限或需要关注的材料" />
+            </Form.Item>
+          </Form>
+        ) : activeRiskAction ? (
+          <Form<RiskProcessFormValues>
+            form={riskProcessForm}
+            layout="vertical"
+            onFinish={processRisk}
+            requiredMark={false}
+          >
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="风险事项">{activeRiskAction.risk.object}</Descriptions.Item>
+              <Descriptions.Item label="当前状态">{activeRiskAction.risk.status}</Descriptions.Item>
+              <Descriptions.Item label="责任人">{activeRiskAction.risk.owner}</Descriptions.Item>
+            </Descriptions>
+            {activeRiskAction.risk.status === '待处置' ? (
+              <Form.Item label="处置方案" name="plan" rules={[{ required: true, message: '请填写处置方案' }]}>
+                <Input.TextArea autoSize={{ minRows: 3, maxRows: 5 }} placeholder="请填写拟采取的核验、补件或整改方案" />
+              </Form.Item>
+            ) : (
+              <Form.Item label="处理结论" name="conclusion" rules={[{ required: true, message: '请填写处理结论' }]}>
+                <Input.TextArea autoSize={{ minRows: 3, maxRows: 5 }} placeholder="请填写风险是否解除、核验结果和后续要求" />
+              </Form.Item>
+            )}
+            <Form.Item label="处理备注" name="remark" rules={[{ required: true, message: '请填写处理备注' }]}>
+              <Input.TextArea autoSize={{ minRows: 3, maxRows: 5 }} placeholder="补充处理依据、附件说明或需要持续关注的事项" />
+            </Form.Item>
+          </Form>
+        ) : null}
+      </Modal>
     </main>
   );
 }
@@ -508,8 +605,7 @@ function TableModule({
   onAdvanceProject,
   onReviewCustomer,
   onConnectCustomer,
-  onAssignRisk,
-  onCloseRisk,
+  onRiskAction,
   onPreviewDocument,
   onArchiveDocument,
 }: {
@@ -521,8 +617,7 @@ function TableModule({
   onAdvanceProject: (projectId: string) => void;
   onReviewCustomer: (customerId: string) => void;
   onConnectCustomer: (customerId: string) => void;
-  onAssignRisk: (riskId: string) => void;
-  onCloseRisk: (riskId: string) => void;
+  onRiskAction: (risk: RiskRecord) => void;
   onPreviewDocument: (document: DocumentRecord) => void;
   onArchiveDocument: (documentId: string) => void;
 }) {
@@ -541,8 +636,7 @@ function TableModule({
         moduleKey: module.key,
         onAdvanceProject,
         onArchiveDocument,
-        onAssignRisk,
-        onCloseRisk,
+        onRiskAction,
         onConnectCustomer,
         onPreviewDocument,
         onReviewCustomer,
@@ -583,8 +677,7 @@ function renderModuleTable({
   onAdvanceProject,
   onReviewCustomer,
   onConnectCustomer,
-  onAssignRisk,
-  onCloseRisk,
+  onRiskAction,
   onPreviewDocument,
   onArchiveDocument,
 }: {
@@ -596,8 +689,7 @@ function renderModuleTable({
   onAdvanceProject: (projectId: string) => void;
   onReviewCustomer: (customerId: string) => void;
   onConnectCustomer: (customerId: string) => void;
-  onAssignRisk: (riskId: string) => void;
-  onCloseRisk: (riskId: string) => void;
+  onRiskAction: (risk: RiskRecord) => void;
   onPreviewDocument: (document: DocumentRecord) => void;
   onArchiveDocument: (documentId: string) => void;
 }) {
@@ -614,8 +706,7 @@ function renderModuleTable({
     case 'risk':
       return (
         <RiskTable
-          onAssignRisk={onAssignRisk}
-          onCloseRisk={onCloseRisk}
+          onRiskAction={onRiskAction}
           projects={projects}
           risks={risks}
         />
@@ -765,13 +856,11 @@ function CustomerTable({
 function RiskTable({
   risks,
   projects,
-  onAssignRisk,
-  onCloseRisk,
+  onRiskAction,
 }: {
   risks: RiskRecord[];
   projects: InvestmentProject[];
-  onAssignRisk: (riskId: string) => void;
-  onCloseRisk: (riskId: string) => void;
+  onRiskAction: (risk: RiskRecord) => void;
 }) {
   const columns: ColumnsType<RiskRecord> = [
     { title: '风险事项', dataIndex: 'object', width: 180, fixed: 'left' },
@@ -796,12 +885,13 @@ function RiskTable({
       fixed: 'right',
       render: (_, row) => (
         <Space className="management-row-actions">
-          <Button onClick={() => onAssignRisk(row.id)} size="small" type="link">
-            分派
-          </Button>
-          <Button onClick={() => onCloseRisk(row.id)} size="small" type="link">
-            闭环
-          </Button>
+          {row.status === '已闭环' ? (
+            <Tag>已完成</Tag>
+          ) : (
+            <Button onClick={() => onRiskAction(row)} size="small" type="link">
+              {row.operation === 'assign' ? '指派' : '处理'}
+            </Button>
+          )}
         </Space>
       ),
     },
